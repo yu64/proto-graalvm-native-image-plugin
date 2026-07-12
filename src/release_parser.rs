@@ -1,11 +1,12 @@
 use proto_pdk::*;
-use regex::Regex;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 const GITHUB_RELEASES_API: &str =
     "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases?per_page=100";
+const GITHUB_RELEASES_API_ALL: &str =
+    "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases?per_page=100&page=";
 
 // ============================================================================
 // Types
@@ -84,8 +85,8 @@ pub fn find_asset_for_version(
             continue;
         }
 
-        if let Some(version) = parse_version_from_tag(&release.tag_name) {
-            if version.to_string() == version {
+        if let Some(parsed_version) = parse_version_from_tag(&release.tag_name) {
+            if parsed_version.to_string() == version {
                 // このリリースから OS/Arch に合致するアセットを探す
                 for asset in release.assets {
                     if let Some(parsed) = parse_asset(&asset.name, &asset.browser_download_url) {
@@ -133,15 +134,25 @@ fn parse_version_from_tag(tag: &str) -> Option<Version> {
 }
 
 /// ファイル名をパース
+///
+/// GraalVM CE のアーカイブファイル名をパースしてメタデータを抽出します。
+///
+/// # パターン例
+///
+/// ```text
+/// graalvm-community-jdk-25i1-25.0.3_windows-x64_bin.zip
+///  └─ prefix ──┬───┘  └─ internal ┘ └─ os-arch ──┘ └ ext
+///              └── ignored (build number)
+///
+/// graalvm-community-jdk-25.0.2_macos-aarch64_bin.tar.gz
+/// graalvm-community-jdk-23.0.0_linux-x64_bin.tar.gz
+/// ```
+///
+/// # Returns
+///
+/// Some(ParsedAsset) - パース成功
+/// None - ファイル名が予期された形式でない
 pub fn parse_asset(filename: &str, url: &str) -> Option<ParsedAsset> {
-    // ファイル名パターン:
-    // graalvm-community-jdk-{version}_{os}-{arch}_bin.{ext}
-    //
-    // 例:
-    // graalvm-community-jdk-25i1-25.0.3_windows-x64_bin.zip
-    // graalvm-community-jdk-25.0.2_macos-aarch64_bin.tar.gz
-    // graalvm-community-jdk-23.0.0_linux-x64_bin.tar.gz
-
     // ファイルタイプを判定
     let file_type = if filename.ends_with(".zip") {
         FileType::Zip
@@ -300,5 +311,32 @@ mod tests {
             parse_os_arch("linux-x64"),
             Some((HostOS::Linux, HostArch::X64))
         );
+    }
+
+    #[test]
+    fn test_parse_os_arch_linux_aarch64() {
+        assert_eq!(
+            parse_os_arch("linux-aarch64"),
+            Some((HostOS::Linux, HostArch::Arm64))
+        );
+    }
+
+    #[test]
+    fn test_parse_asset_invalid_extension() {
+        assert_eq!(parse_asset("graalvm.jar", "https://example.com"), None);
+    }
+
+    #[test]
+    fn test_parse_asset_missing_bin_suffix() {
+        assert_eq!(
+            parse_asset("graalvm-community-jdk-25.0.3_windows-x64.zip", "https://example.com"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_parse_version_from_tag_fallback() {
+        // 実際には存在しないタグ
+        assert_eq!(parse_version_from_tag("invalid-tag"), None);
     }
 }

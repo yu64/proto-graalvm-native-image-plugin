@@ -1,3 +1,15 @@
+//! GraalVM Community Edition Proto WASM Plugin
+//!
+//! This plugin provides integration between moonrepo's proto version manager
+//! and GraalVM Community Edition, enabling seamless version management across
+//! multiple platforms and architectures.
+//!
+//! # Architecture
+//!
+//! - `release_parser`: Fetches and parses GitHub Releases API
+//! - `url_builder`: Constructs download URLs for prebuilt binaries
+//! - `version_resolver`: Resolves version aliases to concrete versions
+
 use proto_pdk::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -12,6 +24,26 @@ use version_resolver::*;
 
 const NAME: &str = "GraalVM CE";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+// Supported GraalVM CE executables
+const GRAALVM_EXECUTABLES: &[&str] = &[
+    "java",
+    "javac",
+    "jar",
+    "javadoc",
+    "jshell",
+    "native-image",
+    "jps",
+    "jstat",
+    "jstatd",
+    "jrunscript",
+    "jdb",
+    "jcmd",
+    "jhsdb",
+    "keytool",
+    "rmid",
+    "rmiregistry",
+];
 
 // ============================================================================
 // PLUGIN REGISTRATION
@@ -83,39 +115,35 @@ pub fn locate_executables(
 
     let mut exes = HashMap::new();
 
-    // Java メインコマンド
+    // Primary executable
     exes.insert(
         "java".into(),
         ExecutableConfig::new_primary(env.os.for_native("bin/java", "bin/java.exe")),
     );
 
-    // Java コンパイラ
-    exes.insert(
-        "javac".into(),
-        ExecutableConfig::new(env.os.for_native("bin/javac", "bin/javac.exe")),
-    );
+    // Compiler and tools
+    let tools = vec![
+        ("javac", "Java compiler"),
+        ("jar", "Java archive tool"),
+        ("javadoc", "Documentation generator"),
+        ("jshell", "Interactive Java shell"),
+        ("jps", "Process status"),
+        ("jstat", "Statistics monitor"),
+        ("jdb", "Debugger"),
+        ("jcmd", "Diagnostic command"),
+        ("keytool", "Key management"),
+        ("native-image", "GraalVM native-image compiler"),
+    ];
 
-    // その他の重要なコマンド
-    exes.insert(
-        "jshell".into(),
-        ExecutableConfig::new(env.os.for_native("bin/jshell", "bin/jshell.exe")),
-    );
-
-    exes.insert(
-        "jar".into(),
-        ExecutableConfig::new(env.os.for_native("bin/jar", "bin/jar.exe")),
-    );
-
-    exes.insert(
-        "javadoc".into(),
-        ExecutableConfig::new(env.os.for_native("bin/javadoc", "bin/javadoc.exe")),
-    );
-
-    // native-image コマンド（GraalVM 特有）
-    exes.insert(
-        "native-image".into(),
-        ExecutableConfig::new(env.os.for_native("bin/native-image", "bin/native-image.exe")),
-    );
+    for (tool, _description) in tools {
+        exes.insert(
+            tool.into(),
+            ExecutableConfig::new(env.os.for_native(
+                &format!("bin/{}", tool),
+                &format!("bin/{}.exe", tool),
+            )),
+        );
+    }
 
     Ok(Json(LocateExecutablesOutput {
         exes,
@@ -142,16 +170,24 @@ pub fn resolve_version(
     let mut output = ResolveVersionOutput::default();
 
     if let UnresolvedVersionSpec::Alias(alias) = input.initial {
-        let candidate = match alias.as_str() {
-            "latest" => "latest",
-            "lts" => "lts",
+        // Normalize common aliases
+        let normalized = match alias.as_str() {
+            "latest" | "current" | "stable" => "latest",
+            "lts" | "long-term-support" => "lts",
+            // Partial version matching (e.g., "25", "25.0")
+            partial if is_partial_version(partial) => partial,
             _ => return Ok(output),
         };
 
-        output.candidate = Some(UnresolvedVersionSpec::Alias(candidate.to_owned()));
+        output.candidate = Some(UnresolvedVersionSpec::Alias(normalized.to_owned()));
     }
 
     Ok(Json(output))
+}
+
+/// Check if input looks like a partial version (e.g., "25", "25.0")
+fn is_partial_version(s: &str) -> bool {
+    s.chars().all(|c| c.is_numeric() || c == '.')
 }
 
 // ============================================================================
@@ -235,4 +271,35 @@ fn build_download_url(
 ) -> FnResult<DownloadPrebuiltOutput> {
     // url_builder モジュールから ダウンロード URL を構築
     url_builder::build_download_info(version, env)
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_partial_version_major() {
+        assert!(is_partial_version("25"));
+    }
+
+    #[test]
+    fn test_is_partial_version_major_minor() {
+        assert!(is_partial_version("25.0"));
+    }
+
+    #[test]
+    fn test_is_partial_version_full() {
+        assert!(is_partial_version("25.0.3"));
+    }
+
+    #[test]
+    fn test_is_partial_version_invalid() {
+        assert!(!is_partial_version("latest"));
+        assert!(!is_partial_version("v25.0.0"));
+        assert!(!is_partial_version("25.0.0-beta"));
+    }
 }

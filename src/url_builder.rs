@@ -1,15 +1,30 @@
 use proto_pdk::*;
 use semver::Version;
 
-use crate::release_parser;
+use crate::release_parser::{self, ParsedAsset};
 
 const GITHUB_RELEASES_URL: &str =
     "https://github.com/graalvm/graalvm-ce-builds/releases/download";
+
+const GITHUB_API_URL: &str =
+    "https://api.github.com/repos/graalvm/graalvm-ce-builds/releases?per_page=100";
 
 // ============================================================================
 // Main Entry Point
 // ============================================================================
 
+/// GraalVM CE のダウンロード情報を構築
+///
+/// # Arguments
+/// * `version_str` - バージョン文字列（例："25.0.3"）
+/// * `env` - ホスト環境情報（OS/Architecture）
+///
+/// # Returns
+/// DownloadPrebuiltOutput - ダウンロード URL とメタデータ
+///
+/// # Errors
+/// - 無効なバージョン形式
+/// - 該当バージョン/OS/Arch の組み合わせが見つからない
 pub fn build_download_info(
     version_str: &str,
     env: &HostEnvironment,
@@ -19,7 +34,7 @@ pub fn build_download_info(
         .map_err(|_| PluginError::Custom(format!("Invalid version: {}", version_str)))?;
 
     // 該当バージョンのアセットを探す
-    let asset = release_parser::find_asset_for_version(version_str, env.os, env.arch)?
+    let asset = find_asset_for_platform(version_str, env.os, env.arch)?
         .ok_or_else(|| {
             PluginError::Custom(format!(
                 "No prebuilt found for GraalVM CE {} on {} {}",
@@ -50,14 +65,22 @@ pub fn build_download_info(
 // Helper Functions
 // ============================================================================
 
+/// プラットフォーム用のアセットを探す
+fn find_asset_for_platform(
+    version_str: &str,
+    os: HostOS,
+    arch: HostArch,
+) -> FnResult<Option<ParsedAsset>> {
+    release_parser::find_asset_for_version(version_str, os, arch)
+}
+
 /// GitHub tag 名を決定
 fn determine_tag_name(version: &Version) -> FnResult<String> {
-    // GitHub Releases から全タグを取得して、このバージョンに対応するタグを探す
-    let releases: Vec<crate::release_parser::GitHubRelease> =
-        fetch_json("https://api.github.com/repos/graalvm/graalvm-ce-builds/releases?per_page=100")?;
+    // GitHub API から全タグを取得して、このバージョンに対応するタグを探す
+    let releases: Vec<release_parser::GitHubRelease> = fetch_json(GITHUB_API_URL)?;
 
     for release in releases {
-        if let Some(v) = crate::release_parser::parse_version_from_tag(&release.tag_name) {
+        if let Some(v) = release_parser::parse_version_from_tag(&release.tag_name) {
             if v == *version {
                 return Ok(release.tag_name);
             }
