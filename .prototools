@@ -1,0 +1,8 @@
+# GraalVM CE Proto Plugin - Local Development Configuration
+
+[tools]
+# プラグインを local WASM ファイルから読み込む（開発中）
+graalvm-ce = "file://./target/wasm32-wasip1/debug/proto_graalvm_plugin.wasm"
+
+[tools.graalvm-ce]
+# プラグイン設定（オプション）

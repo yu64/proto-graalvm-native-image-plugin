@@ -1,0 +1,58 @@
+[package]
+name = "proto-graalvm-plugin"
+version = "0.1.0"
+edition = "2021"
+authors = ["yu64"]
+license = "MIT"
+description = "A proto plugin for managing GraalVM Community Edition versions"
+repository = "https://github.com/yu64/proto-graalvm-plugin"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Proto Plugin Development Kit
+proto_pdk = "0.46"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP requests
+reqwest = { version = "0.11", features = ["json"] }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Regex for pattern matching
+regex = "1.10"
+
+# Semantic versioning
+semver = { version = "1.0", features = ["serde"] }
+
+# Error handling
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+
+# Date/time utilities
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+proto_pdk_test_utils = "0.46"
+starbase_sandbox = "0.5"
+tokio = { version = "1", features = ["full"] }
+insta = "1.35"  # Snapshot testing
+
+[profile.release]
+strip = true
+opt-level = "z"
+lto = true
+codegen-units = 1
+
+# 目標: WASM ファイルサイズを最小化
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
+strip = true

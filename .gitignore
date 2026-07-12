@@ -1,0 +1,36 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.rlib
+*.so
+*.dylib
+
+# WASM
+*.wasm
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Development
+.envrc
+.dirlocals
+*.local
+
+# Build artifacts
+/release/
+/build/
+dist/
+
+# Testing
+.tarpaulin-report.html
+coverage/
