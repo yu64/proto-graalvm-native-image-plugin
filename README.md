@@ -1,5 +1,9 @@
 # Proto GraalVM CE Plugin
 
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/yu64/proto-graalvm-plugin/releases/tag/v0.3.0)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-98-brightgreen.svg)]()
+
 A [moonrepo proto](https://moonrepo.dev/proto) WASM plugin for managing **GraalVM Community Edition** versions across multiple platforms and architectures.
 
 ## Features
