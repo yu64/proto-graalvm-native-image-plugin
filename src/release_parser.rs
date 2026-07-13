@@ -339,4 +339,100 @@ mod tests {
         // 実際には存在しないタグ
         assert_eq!(parse_version_from_tag("invalid-tag"), None);
     }
+
+    // ============================================================================
+    // Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn test_parse_asset_complex_version() {
+        // Build metadata を含む複雑なバージョン番号
+        let filename = "graalvm-community-jdk-25i1-25.0.3_windows-x64_bin.zip";
+        let asset = parse_asset(filename, "https://example.com").unwrap();
+        assert_eq!(asset.version, Version::new(25, 0, 3));
+    }
+
+    #[test]
+    fn test_parse_asset_tar_gz_format() {
+        // tar.gz フォーマット
+        let filename = "graalvm-community-jdk-25.0.3_linux-x64_bin.tar.gz";
+        let asset = parse_asset(filename, "https://example.com").unwrap();
+        assert_eq!(asset.file_type, FileType::TarGz);
+        assert_eq!(asset.os, HostOS::Linux);
+    }
+
+    #[test]
+    fn test_parse_os_arch_windows_aarch64() {
+        // Windows ARM64 対応確認
+        assert_eq!(
+            parse_os_arch("windows-aarch64"),
+            Some((HostOS::Windows, HostArch::Arm64))
+        );
+    }
+
+    #[test]
+    fn test_parse_os_arch_alternative_naming() {
+        // 代替命名パターン（darwin など）
+        assert_eq!(
+            parse_os_arch("darwin-aarch64"),
+            Some((HostOS::MacOS, HostArch::Arm64))
+        );
+    }
+
+    #[test]
+    fn test_parse_version_empty_tag() {
+        // 空のタグ
+        assert_eq!(parse_version_from_tag(""), None);
+    }
+
+    #[test]
+    fn test_parse_version_malformed() {
+        // 不正な形式
+        assert_eq!(parse_version_from_tag("jdk-abc.def"), None);
+        assert_eq!(parse_version_from_tag("jdk-25.0"), None);
+    }
+
+    #[test]
+    fn test_parse_asset_all_supported_platforms() {
+        // 全サポートプラットフォームを確認
+        let test_cases = vec![
+            ("graalvm-community-jdk-25.0.3_windows-x64_bin.zip", HostOS::Windows, HostArch::X64),
+            ("graalvm-community-jdk-25.0.3_windows-aarch64_bin.zip", HostOS::Windows, HostArch::Arm64),
+            ("graalvm-community-jdk-25.0.3_macos-x64_bin.tar.gz", HostOS::MacOS, HostArch::X64),
+            ("graalvm-community-jdk-25.0.3_macos-aarch64_bin.tar.gz", HostOS::MacOS, HostArch::Arm64),
+            ("graalvm-community-jdk-25.0.3_linux-x64_bin.tar.gz", HostOS::Linux, HostArch::X64),
+            ("graalvm-community-jdk-25.0.3_linux-aarch64_bin.tar.gz", HostOS::Linux, HostArch::Arm64),
+        ];
+
+        for (filename, expected_os, expected_arch) in test_cases {
+            let asset = parse_asset(filename, "https://example.com");
+            assert!(asset.is_some(), "Failed to parse: {}", filename);
+            let parsed = asset.unwrap();
+            assert_eq!(parsed.os, expected_os, "OS mismatch for: {}", filename);
+            assert_eq!(parsed.arch, expected_arch, "Arch mismatch for: {}", filename);
+        }
+    }
+
+    #[test]
+    fn test_version_ordering() {
+        // バージョンの大小比較
+        let v1 = Version::new(25, 0, 3);
+        let v2 = Version::new(25, 1, 0);
+        let v3 = Version::new(25, 0, 2);
+
+        assert!(v1 > v3);
+        assert!(v2 > v1);
+        assert!(v1 == Version::new(25, 0, 3));
+    }
+
+    #[test]
+    fn test_parse_asset_with_long_url() {
+        // 長い URL でも正しく処理できるか
+        let long_url = "https://github.com/graalvm/graalvm-ce-builds/releases/download/graal-25.1.3/graalvm-community-jdk-25i1-25.0.3_windows-x64_bin.zip";
+        let filename = "graalvm-community-jdk-25i1-25.0.3_windows-x64_bin.zip";
+        
+        let asset = parse_asset(filename, long_url).unwrap();
+        assert_eq!(asset.url, long_url);
+        assert_eq!(asset.filename, filename);
+    }
 }

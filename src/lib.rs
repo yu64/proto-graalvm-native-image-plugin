@@ -302,4 +302,23 @@ mod tests {
         assert!(!is_partial_version("v25.0.0"));
         assert!(!is_partial_version("25.0.0-beta"));
     }
+
+    #[test]
+    fn test_is_partial_version_with_leading_zeros() {
+        assert!(is_partial_version("025"));
+        assert!(is_partial_version("025.001"));
+    }
+
+    #[test]
+    fn test_is_partial_version_empty() {
+        assert!(!is_partial_version(""));
+    }
+
+    #[test]
+    fn test_is_partial_version_edge_cases() {
+        assert!(is_partial_version("0"));
+        assert!(is_partial_version("0.0"));
+        assert!(is_partial_version("0.0.0"));
+        assert!(!is_partial_version("0.0.0.0")); // 4 バージョン番号は無効
+    }
 }

@@ -146,4 +146,120 @@ mod tests {
         let versions = make_versions();
         assert_eq!(resolve_alias("99.0.0", &versions), None);
     }
+
+    // ============================================================================
+    // Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn test_resolve_empty_version_list() {
+        // 空のバージョンリスト
+        let empty: Vec<Version> = vec![];
+        assert_eq!(resolve_alias("latest", &empty), None);
+        assert_eq!(resolve_alias("lts", &empty), None);
+    }
+
+    #[test]
+    fn test_resolve_single_version() {
+        // 1 つのバージョンのみ
+        let versions = vec![Version::new(25, 0, 0)];
+        assert_eq!(resolve_alias("latest", &versions), Some(Version::new(25, 0, 0)));
+        assert_eq!(resolve_alias("lts", &versions), Some(Version::new(25, 0, 0)));
+    }
+
+    #[test]
+    fn test_resolve_partial_major_no_match() {
+        let versions = make_versions();
+        assert_eq!(resolve_alias("99", &versions), None);
+    }
+
+    #[test]
+    fn test_resolve_partial_major_minor_no_match() {
+        let versions = make_versions();
+        assert_eq!(resolve_alias("25.9", &versions), None);
+    }
+
+    #[test]
+    fn test_resolve_multiple_minor_versions() {
+        // 同じ major.minor で複数の patch がある場合
+        let versions = vec![
+            Version::new(25, 0, 5),
+            Version::new(25, 0, 4),
+            Version::new(25, 0, 3),
+        ];
+        assert_eq!(resolve_alias("25.0", &versions), Some(Version::new(25, 0, 5)));
+    }
+
+    #[test]
+    fn test_resolve_version_comparison_order() {
+        // バージョン比較順序の確認
+        let v1 = Version::new(25, 0, 3);
+        let v2 = Version::new(25, 1, 0);
+        
+        assert!(v2 > v1);
+        assert!(v1 < v2);
+    }
+
+    #[test]
+    fn test_resolve_lts_with_non_lts_versions() {
+        // LTS とそれ以外が混在
+        let versions = vec![
+            Version::new(25, 1, 0), // not LTS
+            Version::new(25, 0, 0), // LTS (x.0.0)
+            Version::new(24, 1, 0), // not LTS
+            Version::new(24, 0, 0), // LTS
+        ];
+        
+        let lts = resolve_alias("lts", &versions);
+        assert!(lts.is_some());
+        let resolved = lts.unwrap();
+        assert_eq!(resolved.patch, 0); // LTS は xx.0.0 の形式
+    }
+
+    #[test]
+    fn test_resolve_partial_with_leading_zeros() {
+        // Leading zero は semver では許可されない（エラーになる）
+        let versions = make_versions();
+        assert_eq!(resolve_alias("025", &versions), None);
+    }
+
+    #[test]
+    fn test_resolve_partial_with_special_chars() {
+        // 特殊文字は許可されない
+        let versions = make_versions();
+        assert_eq!(resolve_alias("25.0-beta", &versions), None);
+        assert_eq!(resolve_alias("25.0+build", &versions), None);
+    }
+
+    #[test]
+    fn test_resolve_version_sorted_correctly() {
+        // バージョンソート順の確認
+        let mut versions = vec![
+            Version::new(23, 0, 0),
+            Version::new(25, 1, 0),
+            Version::new(25, 0, 3),
+            Version::new(24, 0, 0),
+            Version::new(25, 0, 2),
+        ];
+        versions.sort();
+        versions.reverse(); // 新しい順
+
+        assert_eq!(versions[0], Version::new(25, 1, 0));
+        assert_eq!(versions[1], Version::new(25, 0, 3));
+    }
+
+    #[test]
+    fn test_lts_priority_order() {
+        // LTS 候補の優先順位確認
+        let versions = vec![
+            Version::new(25, 1, 0),
+            Version::new(25, 0, 0), // ← これが LTS
+            Version::new(24, 0, 0),
+            Version::new(23, 0, 0),
+        ];
+
+        let lts = resolve_alias("lts", &versions).unwrap();
+        // 最初に見つかった LTS を返す
+        assert_eq!(lts, Version::new(25, 0, 0));
+    }
 }

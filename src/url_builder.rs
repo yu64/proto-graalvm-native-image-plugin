@@ -150,4 +150,83 @@ mod tests {
         let version = Version::new(25, 0, 3);
         assert_eq!(determine_archive_prefix(&version), "graalvm-jdk-25.0.3");
     }
+
+    // ============================================================================
+    // Edge Case Tests
+    // ============================================================================
+
+    #[test]
+    fn test_guess_tag_name_major_24() {
+        // バージョン 24.x
+        let version = Version::new(24, 1, 0);
+        assert_eq!(guess_tag_name(&version), "jdk-24.1.0");
+    }
+
+    #[test]
+    fn test_guess_tag_name_major_26() {
+        // バージョン 26.0.0 以上（仮定）
+        let version = Version::new(26, 0, 0);
+        assert_eq!(guess_tag_name(&version), "graal-26.0.0");
+    }
+
+    #[test]
+    fn test_determine_archive_prefix_boundary() {
+        // 境界值: 25.0.0
+        let v1 = Version::new(24, 9, 9);
+        let v2 = Version::new(25, 0, 0);
+        let v3 = Version::new(25, 0, 1);
+
+        assert!(determine_archive_prefix(&v1).contains("ce-java17"));
+        assert!(determine_archive_prefix(&v2).contains("graalvm-jdk"));
+        assert!(determine_archive_prefix(&v3).contains("graalvm-jdk"));
+    }
+
+    #[test]
+    fn test_determine_archive_prefix_format() {
+        // フォーマットチェック
+        let version = Version::new(25, 1, 3);
+        let prefix = determine_archive_prefix(&version);
+
+        assert!(prefix.starts_with("graalvm-"));
+        assert!(prefix.contains(&version.to_string()));
+    }
+
+    #[test]
+    fn test_tag_name_consistency() {
+        // タグ名の一貫性チェック
+        let versions = vec![
+            (23, 0, 0, "jdk"),
+            (24, 0, 0, "jdk"),
+            (25, 0, 0, "jdk"),
+            (25, 1, 0, "graal"),
+            (26, 0, 0, "graal"),
+        ];
+
+        for (major, minor, patch, expected_prefix) in versions {
+            let version = Version::new(major, minor, patch);
+            let tag = guess_tag_name(&version);
+            assert!(
+                tag.starts_with(expected_prefix),
+                "Expected {} prefix for {}.{}.{}, got {}",
+                expected_prefix,
+                major,
+                minor,
+                patch,
+                tag
+            );
+        }
+    }
+
+    #[test]
+    fn test_download_url_structure() {
+        // ダウンロード URL の構造チェック
+        let tag = "graal-25.0.3";
+        let filename = "graalvm-community-jdk-25.0.3_windows-x64_bin.zip";
+        let url = format!("{}/{}/{}", GITHUB_RELEASES_URL, tag, filename);
+
+        assert!(url.contains("github.com"));
+        assert!(url.contains("graalvm-ce-builds"));
+        assert!(url.contains("releases"));
+        assert!(url.contains("download"));
+    }
 }
