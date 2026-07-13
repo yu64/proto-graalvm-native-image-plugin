@@ -18,26 +18,25 @@ jobs:
         with:
           targets: wasm32-wasip1
 
-      - name: Generate Cargo.lock (if missing or placeholder)
+      - name: Generate Cargo.lock with cargo update
         run: |
-          if ! grep -q "name = \"proto-graalvm-plugin\"" Cargo.lock 2>/dev/null || grep -q "placeholder" Cargo.lock 2>/dev/null; then
-            echo "Regenerating Cargo.lock..."
-            cargo update
+          cargo update
+          # Commit and push if Cargo.lock changed
+          if git diff --exit-code Cargo.lock > /dev/null 2>&1; then
+            echo "Cargo.lock already up to date"
+          else
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git config user.name "github-actions[bot]"
             git add Cargo.lock
-            git commit -m "chore: Auto-generate accurate Cargo.lock"
-            git push origin HEAD:main
-            echo "Cargo.lock regenerated and committed"
-          else
-            echo "Cargo.lock is valid"
+            git commit -m "chore: Update Cargo.lock"
+            git push origin HEAD:main || true
           fi
 
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
 
@@ -45,7 +44,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-git-
 
@@ -53,7 +52,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.toml') }}
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-build-target-
 

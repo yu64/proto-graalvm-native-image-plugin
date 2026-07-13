@@ -35,14 +35,8 @@ jobs:
         with:
           targets: wasm32-wasip1
 
-      - name: Generate Cargo.lock (if missing or placeholder)
-        run: |
-          if ! grep -q "name = \"proto-graalvm-plugin\"" Cargo.lock 2>/dev/null || grep -q "placeholder" Cargo.lock 2>/dev/null; then
-            echo "Regenerating Cargo.lock..."
-            cargo update
-          else
-            echo "Cargo.lock is valid"
-          fi
+      - name: Generate Cargo.lock with cargo update
+        run: cargo update
 
       - name: Cache cargo build
         uses: actions/cache@v3
