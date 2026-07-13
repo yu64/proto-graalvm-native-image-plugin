@@ -1,6 +1,6 @@
 # Rust
 /target/
-Cargo.lock
+# Cargo.lock - KEPT for WASM plugin reproducibility
 **/*.rs.bk
 *.rlib
 *.so
