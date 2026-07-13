@@ -47,35 +47,47 @@ fn resolve_lts_version(available_versions: &[Version]) -> Option<Version> {
 
 /// 部分バージョン（"25.0", "25" など）をマッチ
 fn resolve_partial_version(partial: &str, available_versions: &[Version]) -> Option<Version> {
-    let parts: Vec<&str> = partial.split('.').collect();
+    if partial.is_empty() {
+        return None;
+    }
 
-    if parts.is_empty() {
+    let parts: Vec<&str> = partial.split('.').collect();
+    if parts.is_empty() || parts.len() > 3 {
+        return None;
+    }
+
+    if parts.iter().any(|part| part.is_empty() || part.chars().any(|ch| !ch.is_ascii_digit())) {
+        return None;
+    }
+
+    if parts.iter().any(|part| part.starts_with('0') && part.len() > 1) {
         return None;
     }
 
     match parts.len() {
         1 => {
-            // "25" → 25.x.x の最新
             let major = parts[0].parse::<u64>().ok()?;
             available_versions
                 .iter()
-                .find(|v| v.major == major)
+                .filter(|v| v.major == major)
+                .max_by(|a, b| a.cmp(b))
                 .cloned()
         }
 
         2 => {
-            // "25.0" → 25.0.x の最新
             let major = parts[0].parse::<u64>().ok()?;
             let minor = parts[1].parse::<u64>().ok()?;
             available_versions
                 .iter()
-                .find(|v| v.major == major && v.minor == minor)
+                .filter(|v| v.major == major && v.minor == minor)
+                .max_by(|a, b| a.cmp(b))
                 .cloned()
         }
 
         _ => {
-            // "25.0.3" → 完全マッチ
-            Version::parse(partial).ok()
+            Version::parse(partial).ok().filter(|version| {
+                available_versions.iter().any(|candidate| candidate == version)
+            })
         }
     }
 }

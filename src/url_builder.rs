@@ -28,18 +28,20 @@ const GITHUB_API_URL: &str =
 pub fn build_download_info(
     version_str: &str,
     env: &HostEnvironment,
-) -> FnResult<DownloadPrebuiltOutput> {
+) -> AnyResult<DownloadPrebuiltOutput> {
     // バージョンをパース
     let version = Version::parse(version_str)
-        .map_err(|_| PluginError::Custom(format!("Invalid version: {}", version_str)))?;
+        .map_err(|_| anyhow::anyhow!("Invalid version: {}", version_str))?;
 
     // 該当バージョンのアセットを探す
     let asset = find_asset_for_platform(version_str, env.os, env.arch)?
         .ok_or_else(|| {
-            PluginError::Custom(format!(
+            anyhow::anyhow!(
                 "No prebuilt found for GraalVM CE {} on {} {}",
-                version_str, env.os, env.arch
-            ))
+                version_str,
+                env.os,
+                env.arch
+            )
         })?;
 
     // GitHub Releases URL を構築
@@ -70,14 +72,13 @@ fn find_asset_for_platform(
     version_str: &str,
     os: HostOS,
     arch: HostArch,
-) -> FnResult<Option<ParsedAsset>> {
+) -> AnyResult<Option<ParsedAsset>> {
     release_parser::find_asset_for_version(version_str, os, arch)
 }
 
 /// GitHub tag 名を決定
-fn determine_tag_name(version: &Version) -> FnResult<String> {
-    // GitHub API から全タグを取得して、このバージョンに対応するタグを探す
-    let releases: Vec<release_parser::GitHubRelease> = fetch_json(GITHUB_API_URL)?;
+fn determine_tag_name(version: &Version) -> AnyResult<String> {
+    let releases: Vec<release_parser::GitHubRelease> = release_parser::fetch_releases(GITHUB_API_URL)?;
 
     for release in releases {
         if let Some(v) = release_parser::parse_version_from_tag(&release.tag_name) {

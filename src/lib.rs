@@ -86,7 +86,7 @@ pub fn download_prebuilt(
     let version = &input.context.version;
 
     // GitHub Releases から該当バージョンのアセットを取得
-    let download_info = build_download_url(version, &env)?;
+    let download_info = build_download_url(&version.to_string(), &env)?;
 
     Ok(Json(download_info))
 }

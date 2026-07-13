@@ -46,9 +46,8 @@ pub enum FileType {
 // Main API Function
 // ============================================================================
 
-pub fn fetch_and_parse_releases() -> FnResult<Vec<Version>> {
-    // GitHub Releases API から取得（キャッシングは proto が自動で行う）
-    let releases: Vec<GitHubRelease> = fetch_json(GITHUB_RELEASES_API)?;
+pub fn fetch_and_parse_releases() -> AnyResult<Vec<Version>> {
+    let releases: Vec<GitHubRelease> = fetch_releases(GITHUB_RELEASES_API)?;
 
     let mut versions = BTreeMap::new();
 
@@ -77,8 +76,8 @@ pub fn find_asset_for_version(
     version: &str,
     os: HostOS,
     arch: HostArch,
-) -> FnResult<Option<ParsedAsset>> {
-    let releases: Vec<GitHubRelease> = fetch_json(GITHUB_RELEASES_API)?;
+) -> AnyResult<Option<ParsedAsset>> {
+    let releases: Vec<GitHubRelease> = fetch_releases(GITHUB_RELEASES_API)?;
 
     for release in releases {
         if release.prerelease || release.draft {
@@ -108,7 +107,7 @@ pub fn find_asset_for_version(
 // ============================================================================
 
 /// タグ名からバージョンを抽出
-fn parse_version_from_tag(tag: &str) -> Option<Version> {
+pub(crate) fn parse_version_from_tag(tag: &str) -> Option<Version> {
     // パターン 1: "jdk-25.0.0" → 25.0.0
     if let Some(version_str) = tag.strip_prefix("jdk-") {
         if let Ok(v) = Version::parse(version_str) {
@@ -208,6 +207,20 @@ pub fn parse_asset(filename: &str, url: &str) -> Option<ParsedAsset> {
 }
 
 /// OS と Architecture をパース
+pub fn fetch_releases(url: &str) -> AnyResult<Vec<GitHubRelease>> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+
+    let releases = runtime.block_on(async {
+        let response = reqwest::get(url).await?.error_for_status()?;
+        let releases = response.json::<Vec<GitHubRelease>>().await?;
+        anyhow::Result::<Vec<GitHubRelease>>::Ok(releases)
+    })?;
+
+    Ok(releases)
+}
+
 fn parse_os_arch(os_arch: &str) -> Option<(HostOS, HostArch)> {
     match os_arch {
         "windows-x64" => Some((HostOS::Windows, HostArch::X64)),

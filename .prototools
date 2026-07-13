@@ -1,8 +1,4 @@
-# GraalVM CE Proto Plugin - Local Development Configuration
+rust = "1.97.0"
 
-[tools]
-# プラグインを local WASM ファイルから読み込む（開発中）
-graalvm-ce = "file://./target/wasm32-wasip1/debug/proto_graalvm_plugin.wasm"
-
-[tools.graalvm-ce]
-# プラグイン設定（オプション）
+[plugins.tools]
+graalvm-ce = "file://./target/wasm32-wasip1/release/proto_graalvm_plugin.wasm"

@@ -8,11 +8,11 @@ description = "A proto plugin for managing GraalVM Community Edition versions"
 repository = "https://github.com/yu64/proto-graalvm-plugin"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Proto Plugin Development Kit
-proto_pdk = "0.46"
+proto_pdk = "0.32.9"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -22,7 +22,7 @@ serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json"] }
 
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
 
 # Regex for pattern matching
 regex = "1.10"
@@ -32,6 +32,7 @@ semver = { version = "1.0", features = ["serde"] }
 
 # Error handling
 thiserror = "1.0"
+anyhow = "1.0"
 
 # Logging
 tracing = "0.1"
@@ -40,7 +41,6 @@ tracing = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
-proto_pdk_test_utils = "0.46"
 starbase_sandbox = "0.5"
 tokio = { version = "1", features = ["full"] }
 insta = "1.35"  # Snapshot testing
