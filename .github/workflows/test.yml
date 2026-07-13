@@ -18,6 +18,21 @@ jobs:
         with:
           targets: wasm32-wasip1
 
+      - name: Generate Cargo.lock (if missing or placeholder)
+        run: |
+          if ! grep -q "name = \"proto-graalvm-plugin\"" Cargo.lock 2>/dev/null || grep -q "placeholder" Cargo.lock 2>/dev/null; then
+            echo "Regenerating Cargo.lock..."
+            cargo update
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git add Cargo.lock
+            git commit -m "chore: Auto-generate accurate Cargo.lock"
+            git push origin HEAD:main
+            echo "Cargo.lock regenerated and committed"
+          else
+            echo "Cargo.lock is valid"
+          fi
+
       - name: Cache cargo registry
         uses: actions/cache@v3
         with:
