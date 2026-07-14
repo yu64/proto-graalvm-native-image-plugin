@@ -19,16 +19,20 @@ jobs:
           targets: wasm32-wasip1
 
       - name: Generate Cargo.lock with cargo update
+        run: cargo update
+
+      - name: Format code with cargo fmt
         run: |
-          cargo update
-          # Commit and push if Cargo.lock changed
-          if git diff --exit-code Cargo.lock > /dev/null 2>&1; then
-            echo "Cargo.lock already up to date"
+          cargo fmt
+          # Check if there are changes
+          if git diff --exit-code > /dev/null 2>&1; then
+            echo "Code already formatted"
           else
+            echo "Code formatted, committing changes..."
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git config user.name "github-actions[bot]"
-            git add Cargo.lock
-            git commit -m "chore: Update Cargo.lock"
+            git add -A
+            git commit -m "style: Auto-format code with cargo fmt"
             git push origin HEAD:main || true
           fi
 
