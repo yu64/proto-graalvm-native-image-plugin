@@ -72,6 +72,9 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Generate Cargo.lock with cargo update
+        run: cargo update
+
       - name: Check formatting
         run: cargo fmt -- --check
 
@@ -86,11 +89,16 @@ jobs:
         with:
           targets: wasm32-wasip1
 
+      - name: Generate Cargo.lock with cargo update
+        run: cargo update
+
       - name: Cache cargo build
         uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-target-
 
       - name: Run clippy
         run: cargo clippy --target wasm32-wasip1 -- -D warnings
@@ -106,11 +114,16 @@ jobs:
         with:
           targets: wasm32-wasip1
 
+      - name: Generate Cargo.lock with cargo update
+        run: cargo update
+
       - name: Cache cargo build
         uses: actions/cache@v3
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-target-release-
 
       - name: Build (debug)
         run: cargo build --target wasm32-wasip1
