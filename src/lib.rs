@@ -7,7 +7,6 @@ mod proto;
 #[cfg(feature = "wasm")]
 pub use proto::*;
 
-
 #[cfg(test)]
 mod tests {
     #[test]
@@ -15,3 +14,4 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
+

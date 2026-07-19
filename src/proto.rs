@@ -51,11 +51,12 @@ pub fn download_prebuilt(
     let releases = graalvm_api::fetch_releases()?;
 
     let version_str = format!("{}.{}.{}", version.major, version.minor, version.patch);
-    let download_url = graalvm_api::find_asset(&releases, &version_str, &env)
-        .ok_or(PluginError::Message(format!(
+    let download_url = graalvm_api::find_asset(&releases, &version_str, &env).ok_or(
+        PluginError::Message(format!(
             "No asset found for version {} on {}/{}",
             version_str, env.os, env.arch
-        )))?;
+        )),
+    )?;
 
     Ok(Json(DownloadPrebuiltOutput {
         download_url,
@@ -76,8 +77,14 @@ pub fn locate_executables(
         _ => "bin",
     };
 
-    exes.insert("java".into(), ExecutableConfig::new_primary(format!("{}/java", bin_dir)));
-    exes.insert("javac".into(), ExecutableConfig::new(format!("{}/javac", bin_dir)));
+    exes.insert(
+        "java".into(),
+        ExecutableConfig::new_primary(format!("{}/java", bin_dir)),
+    );
+    exes.insert(
+        "javac".into(),
+        ExecutableConfig::new(format!("{}/javac", bin_dir)),
+    );
 
     let exes_dirs = vec![bin_dir.into()];
 
@@ -156,4 +163,3 @@ mod tests {
         assert!(result.is_ok());
     }
 }
-
