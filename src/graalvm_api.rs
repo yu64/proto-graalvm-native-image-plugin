@@ -58,8 +58,7 @@ fn get_arch_string(arch: HostArch) -> &'static str {
 /// Fetch release information from GitHub API
 pub fn fetch_releases() -> FnResult<Vec<GitHubRelease>> {
     let url = format!("{}?per_page=100", GITHUB_API_URL);
-    let releases = fetch_json::<Vec<GitHubRelease>>(url.as_str())?;
-    Ok(releases)
+    Ok(fetch_json(url.as_str())?)
 }
 
 /// Find asset matching the platform and version
