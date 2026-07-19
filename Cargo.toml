@@ -6,29 +6,36 @@ authors = ["yu64"]
 license = "MIT"
 description = "A proto plugin for managing GraalVM Community Edition versions"
 repository = "https://github.com/yu64/proto-graalvm-plugin"
+publish = false
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-# Proto Plugin Development Kit
-proto_pdk = "0.32"
-
-# Serialization (WASM compatible)
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-
-# Semantic versioning (WASM compatible)
+extism-pdk = "1.4.1"
+proto_pdk = "0.32.8"
+serde = "1"
+serde_json = "1"
 semver = { version = "1.0", features = ["serde"] }
-
-# Error handling (WASM compatible)
-thiserror = "1.0"
-
-# Regular expressions (WASM compatible)
-regex = "1.10"
+rustc-hash = "2.1"
+url = "2"
 
 [dev-dependencies]
-proto_pdk_test_utils = "0.32"
+proto_pdk_test_utils = "0.44.2"
+starbase_sandbox = "0.11.0"
+tokio = "1"
+
+[features]
+default = ["wasm"]
+wasm = []
+
+[profile.release]
+codegen-units = 1
+debug = false
+lto = true
+opt-level = "s"
+panic = "abort"
+
 
 [profile.release]
 strip = true

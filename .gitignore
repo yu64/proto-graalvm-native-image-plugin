@@ -1,36 +1,3 @@
-# Rust
-/target/
-# Cargo.lock - KEPT for WASM plugin reproducibility
-**/*.rs.bk
-*.rlib
-*.so
-*.dylib
+/target
+.idea
 
-# WASM
-*.wasm
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Development
-.envrc
-.dirlocals
-*.local
-
-# Build artifacts
-/release/
-/build/
-dist/
-
-# Testing
-.tarpaulin-report.html
-coverage/
