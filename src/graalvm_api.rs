@@ -1,7 +1,6 @@
 use extism_pdk::FnResult;
 use proto_pdk::{fetch_json, HostArch, HostEnvironment, HostOS};
 use serde::Deserialize;
-use url::Url;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/oracle/graalvm-ce-builds/releases";
 
@@ -59,7 +58,7 @@ fn get_arch_string(arch: HostArch) -> &'static str {
 /// Fetch release information from GitHub API
 pub fn fetch_releases() -> FnResult<Vec<GitHubRelease>> {
     let url = format!("{}?per_page=100", GITHUB_API_URL);
-    let releases = fetch_json::<Vec<GitHubRelease>>(&url)?;
+    let releases = fetch_json::<Vec<GitHubRelease>>(url.as_str())?;
     Ok(releases)
 }
 
