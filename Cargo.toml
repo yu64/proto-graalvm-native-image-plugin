@@ -35,16 +35,5 @@ debug = false
 lto = true
 opt-level = "s"
 panic = "abort"
-
-
-[profile.release]
 strip = true
-opt-level = "z"
-lto = true
-codegen-units = 1
 
-# 目標: WASM ファイルサイズを最小化
-[profile.wasm]
-inherits = "release"
-opt-level = "z"
-strip = true
