@@ -1,59 +1,85 @@
 use extism_pdk::*;
 use proto_pdk::*;
-use serde::{Deserialize, Serialize};
+use rustc_hash::FxHashMap;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct GraalVMConfig {
-    pub version: String,
-}
-
-#[host_fn]
-extern "ExtismHost" {
-    fn exec_command(input: String) -> String;
-}
-
-/// Register the tool with the proto plugin
 #[plugin_fn]
-pub fn register_tool(Json(_): Json<ToolMetadataInput>) -> FnResult<Json<ToolMetadata>> {
-    Ok(Json(ToolMetadata {
-        name: "graalvm".into(),
-        type_of: ToolType::Jvm,
-        plugin_version: Some(env!("CARGO_PKG_VERSION").into()),
+pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
+    Ok(Json(RegisterToolOutput {
+        name: "GraalVM".into(),
+        type_of: PluginType::Language,
+        plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
     }))
 }
 
-/// Download a prebuilt binary
+#[plugin_fn]
+pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
+    Ok(Json(DetectVersionOutput {
+        files: vec![".graalvm-version".into()],
+        ignore: vec![],
+    }))
+}
+
+#[plugin_fn]
+pub fn parse_version_file(
+    Json(input): Json<ParseVersionFileInput>,
+) -> FnResult<Json<ParseVersionFileOutput>> {
+    let mut version = None;
+
+    if input.file == ".graalvm-version" {
+        let content = input.content.trim();
+        if !content.is_empty() {
+            version = Some(UnresolvedVersionSpec::parse(content)?);
+        }
+    }
+
+    Ok(Json(ParseVersionFileOutput { version }))
+}
+
 #[plugin_fn]
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
-    // Placeholder implementation
-    Ok(Json(DownloadPrebuiltOutput {
-        download_url: format!(
-            "https://github.com/oracle/graalvm-ce-builds/releases/download/vm-{}/graalvm-ce-java11-{}-{}.tar.gz",
-            input.version, input.version, input.host_env.os
-        ),
-        ..Default::default()
-    }))
+    let _version = input
+        .context
+        .version
+        .as_version()
+        .ok_or(PluginError::Message("Unsupported version type.".into()))?;
+
+    // Placeholder: return empty for now
+    Ok(Json(DownloadPrebuiltOutput::default()))
 }
 
-/// Unpack an archive
-#[plugin_fn]
-pub fn unpack_archive(
-    Json(_input): Json<UnpackArchiveInput>,
-) -> FnResult<Json<UnpackArchiveOutput>> {
-    Ok(Json(UnpackArchiveOutput::default()))
-}
-
-/// Locate executables
 #[plugin_fn]
 pub fn locate_executables(
-    Json(_input): Json<LocateExecutablesInput>,
+    Json(_): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
+    let mut exes: FxHashMap<String, ExecutableConfig> = FxHashMap::default();
+
+    exes.insert("java".into(), ExecutableConfig::new_primary("bin/java"));
+    exes.insert("javac".into(), ExecutableConfig::new("bin/javac"));
+
     Ok(Json(LocateExecutablesOutput {
-        bin_path: Some("bin".into()),
-        executables: vec!["java".into(), "javac".into()],
+        exes_dirs: vec!["bin".into()],
+        exes,
         ..Default::default()
     }))
 }
+
+#[plugin_fn]
+pub fn load_versions(_: ()) -> FnResult<Json<LoadVersionsOutput>> {
+    Ok(Json(LoadVersionsOutput::default()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_register_tool() {
+        // Basic test to ensure function compiles
+        let result = register_tool(Json(RegisterToolInput::default()));
+        assert!(result.is_ok());
+    }
+}
+
