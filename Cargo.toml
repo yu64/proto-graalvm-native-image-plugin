@@ -14,36 +14,21 @@ crate-type = ["cdylib"]
 # Proto Plugin Development Kit
 proto_pdk = "0.32"
 
-# Serialization
+# Serialization (WASM compatible)
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
-# HTTP requests
-reqwest = { version = "0.11", features = ["json"] }
-
-# Async runtime
-tokio = { version = "1", features = ["full"] }
-
-# Regex for pattern matching
-regex = "1.10"
-
-# Semantic versioning
+# Semantic versioning (WASM compatible)
 semver = { version = "1.0", features = ["serde"] }
 
-# Error handling
+# Error handling (WASM compatible)
 thiserror = "1.0"
 
-# Logging
-tracing = "0.1"
-
-# Date/time utilities
-chrono = { version = "0.4", features = ["serde"] }
+# Regular expressions (WASM compatible)
+regex = "1.10"
 
 [dev-dependencies]
 proto_pdk_test_utils = "0.32"
-starbase_sandbox = "0.5"
-tokio = { version = "1", features = ["full"] }
-insta = "1.35"  # Snapshot testing
 
 [profile.release]
 strip = true
