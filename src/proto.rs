@@ -189,6 +189,17 @@ mod tests {
     fn test_register_tool() {
         let result = register_tool(Json(RegisterToolInput::default()));
         assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert_eq!(output.name, NAME);
+        assert_eq!(output.type_of, PluginType::Language);
+    }
+
+    #[test]
+    fn test_register_tool_name() {
+        let result = register_tool(Json(RegisterToolInput::default()));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert_eq!(output.name, "GraalVM");
     }
 
     #[test]
@@ -196,6 +207,7 @@ mod tests {
         let result = detect_version_files(());
         assert!(result.is_ok());
         let output = result.unwrap().0;
+        assert_eq!(output.files.len(), 2);
         assert!(output.files.contains(&".graalvm-version".into()));
         assert!(output.files.contains(&".java-version".into()));
     }
@@ -208,6 +220,8 @@ mod tests {
         };
         let result = parse_version_file(Json(input));
         assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.version.is_some());
     }
 
     #[test]
@@ -218,6 +232,8 @@ mod tests {
         };
         let result = parse_version_file(Json(input));
         assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.version.is_some());
     }
 
     #[test]
@@ -228,14 +244,44 @@ mod tests {
         };
         let result = parse_version_file(Json(input));
         assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.version.is_some());
     }
 
     #[test]
-    fn test_register_tool_name() {
-        let result = register_tool(Json(RegisterToolInput::default()));
+    fn test_parse_version_file_with_whitespace() {
+        let input = ParseVersionFileInput {
+            file: ".graalvm-version".into(),
+            content: "  25.1.0  \n".into(),
+        };
+        let result = parse_version_file(Json(input));
         assert!(result.is_ok());
         let output = result.unwrap().0;
-        assert_eq!(output.name, NAME);
+        assert!(output.version.is_some());
+    }
+
+    #[test]
+    fn test_parse_version_file_empty() {
+        let input = ParseVersionFileInput {
+            file: ".graalvm-version".into(),
+            content: "".into(),
+        };
+        let result = parse_version_file(Json(input));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.version.is_none());
+    }
+
+    #[test]
+    fn test_parse_version_file_ignore_other_file() {
+        let input = ParseVersionFileInput {
+            file: ".some-other-file".into(),
+            content: "25.0.0".into(),
+        };
+        let result = parse_version_file(Json(input));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.version.is_none());
     }
 
     #[test]
@@ -245,5 +291,23 @@ mod tests {
         let output = result.unwrap().0;
         assert!(output.exes.contains_key("java"));
         assert!(output.exes.contains_key("javac"));
+        assert_eq!(output.exes.len(), 2);
+    }
+
+    #[test]
+    fn test_locate_executables_has_primary() {
+        let result = locate_executables(Json(LocateExecutablesInput::default()));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        let java_config = output.exes.get("java").unwrap();
+        assert!(java_config.primary);
+    }
+
+    #[test]
+    fn test_locate_executables_bin_dirs() {
+        let result = locate_executables(Json(LocateExecutablesInput::default()));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(!output.exes_dirs.is_empty());
     }
 }

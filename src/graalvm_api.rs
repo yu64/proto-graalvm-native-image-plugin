@@ -95,9 +95,21 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_version_jdk_with_patch() {
+        let result = parse_version_from_tag("jdk-21.0.1");
+        assert_eq!(result, Some((21, 0, 1)));
+    }
+
+    #[test]
     fn test_parse_version_graal_prefix() {
         let result = parse_version_from_tag("graal-25.1.3");
         assert_eq!(result, Some((25, 1, 3)));
+    }
+
+    #[test]
+    fn test_parse_version_graal_lts() {
+        let result = parse_version_from_tag("graal-23.1.0");
+        assert_eq!(result, Some((23, 1, 0)));
     }
 
     #[test]
@@ -113,16 +125,66 @@ mod tests {
     }
 
     #[test]
-    fn test_get_os_string() {
+    fn test_parse_version_no_numbers() {
+        let result = parse_version_from_tag("jdk-abc");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_parse_version_incomplete() {
+        let result = parse_version_from_tag("jdk-25.0");
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_get_os_string_linux() {
         assert_eq!(get_os_string(HostOS::Linux), "linux");
+    }
+
+    #[test]
+    fn test_get_os_string_macos() {
         assert_eq!(get_os_string(HostOS::MacOS), "macos");
+    }
+
+    #[test]
+    fn test_get_os_string_windows() {
         assert_eq!(get_os_string(HostOS::Windows), "windows");
     }
 
     #[test]
-    fn test_get_arch_string() {
+    fn test_get_arch_string_x64() {
         assert_eq!(get_arch_string(HostArch::X64), "x64");
+    }
+
+    #[test]
+    fn test_get_arch_string_arm64() {
         assert_eq!(get_arch_string(HostArch::Arm64), "aarch64");
+    }
+
+    #[test]
+    fn test_get_arch_string_x86() {
         assert_eq!(get_arch_string(HostArch::X86), "x86");
+    }
+
+    #[test]
+    fn test_get_arch_string_arm() {
+        assert_eq!(get_arch_string(HostArch::Arm), "arm");
+    }
+
+    #[test]
+    fn test_github_release_deserialization() {
+        let json = r#"{
+            "tag_name": "graal-25.0.0",
+            "assets": [
+                {
+                    "name": "graalvm-ce-java21-windows-x64-25.0.0.zip",
+                    "browser_download_url": "https://example.com/download"
+                }
+            ]
+        }"#;
+        let release: GitHubRelease = serde_json::from_str(json).unwrap();
+        assert_eq!(release.tag_name, "graal-25.0.0");
+        assert_eq!(release.assets.len(), 1);
+        assert_eq!(release.assets[0].name, "graalvm-ce-java21-windows-x64-25.0.0.zip");
     }
 }
