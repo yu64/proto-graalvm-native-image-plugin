@@ -3,10 +3,15 @@ use extism_pdk::*;
 use proto_pdk::*;
 use rustc_hash::FxHashMap;
 
+static NAME: &str = "GraalVM";
+
+// Main GraalVM binaries
+static GRAALVM_BINS: [&str; 2] = ["java", "javac"];
+
 #[plugin_fn]
 pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
     Ok(Json(RegisterToolOutput {
-        name: "GraalVM".into(),
+        name: NAME.into(),
         type_of: PluginType::Language,
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
@@ -29,12 +34,44 @@ pub fn parse_version_file(
 
     if input.file == ".graalvm-version" || input.file == ".java-version" {
         let content = input.content.trim();
-        if !content.is_empty() {
-            version = Some(UnresolvedVersionSpec::parse(content)?);
+
+        // Strip any prefix and find the first numeric digit
+        let version_str = if let Some(idx) = content.find(|c: char| c.is_ascii_digit()) {
+            &content[idx..]
+        } else {
+            content
+        };
+
+        if !version_str.is_empty() {
+            version = Some(UnresolvedVersionSpec::parse(version_str)?);
         }
     }
 
     Ok(Json(ParseVersionFileOutput { version }))
+}
+
+#[plugin_fn]
+pub fn activate_environment(
+    Json(input): Json<ActivateEnvironmentInput>,
+) -> FnResult<Json<ActivateEnvironmentOutput>> {
+    let tool_dir = input
+        .context
+        .tool_dir
+        .real_path_string()
+        .ok_or(PluginError::Message(
+            "Could not determine real tool directory".into(),
+        ))?;
+    let env = get_host_environment()?;
+
+    let java_home = match env.os {
+        HostOS::MacOS => format!("{tool_dir}/Contents/Home"),
+        _ => tool_dir,
+    };
+
+    Ok(Json(ActivateEnvironmentOutput {
+        env: [("JAVA_HOME".into(), java_home)].into_iter().collect(),
+        ..ActivateEnvironmentOutput::default()
+    }))
 }
 
 #[plugin_fn]
@@ -58,8 +95,12 @@ pub fn download_prebuilt(
         )),
     )?;
 
+    // Archive prefix is the directory name inside the archive
+    let archive_prefix = format!("graalvm-ce-{}-{}", version_str, graalvm_api::get_os_string(env.os));
+
     Ok(Json(DownloadPrebuiltOutput {
         download_url,
+        archive_prefix: Some(archive_prefix),
         ..Default::default()
     }))
 }
@@ -69,29 +110,34 @@ pub fn locate_executables(
     Json(_): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
     let env = get_host_environment()?;
-    let mut exes: FxHashMap<String, ExecutableConfig> = FxHashMap::default();
 
-    // GraalVM binaries location depends on OS
-    let bin_dir = match env.os {
-        HostOS::MacOS => "Contents/Home/bin",
-        _ => "bin",
+    let exes: FxHashMap<String, _> = GRAALVM_BINS
+        .into_iter()
+        .map(|bin| {
+            let exe_name = env.os.get_exe_name(bin);
+            let exe_path = match env.os {
+                HostOS::MacOS => format!("Contents/Home/bin/{exe_name}"),
+                _ => format!("bin/{exe_name}"),
+            };
+
+            let config = match bin {
+                "java" => ExecutableConfig::new_primary(exe_path),
+                _ => ExecutableConfig::new(exe_path),
+            };
+
+            (String::from(bin), config)
+        })
+        .collect();
+
+    let exes_dirs = match env.os {
+        HostOS::MacOS => vec!["Contents/Home/bin".into()],
+        _ => vec!["bin".into()],
     };
-
-    exes.insert(
-        "java".into(),
-        ExecutableConfig::new_primary(format!("{}/java", bin_dir)),
-    );
-    exes.insert(
-        "javac".into(),
-        ExecutableConfig::new(format!("{}/javac", bin_dir)),
-    );
-
-    let exes_dirs = vec![bin_dir.into()];
 
     Ok(Json(LocateExecutablesOutput {
         exes_dirs,
         exes,
-        ..Default::default()
+        ..LocateExecutablesOutput::default()
     }))
 }
 
@@ -117,8 +163,15 @@ pub fn load_versions(_: ()) -> FnResult<Json<LoadVersionsOutput>> {
         .cloned()
         .unwrap_or(Version::new(0, 0, 0));
 
+    let mut aliases = FxHashMap::default();
+    aliases.insert(
+        "latest".into(),
+        UnresolvedVersionSpec::Semantic(SemVer(latest.clone())),
+    );
+
     Ok(Json(LoadVersionsOutput {
         versions,
+        aliases,
         latest: Some(UnresolvedVersionSpec::Semantic(SemVer(latest))),
         ..Default::default()
     }))
@@ -162,4 +215,32 @@ mod tests {
         let result = parse_version_file(Json(input));
         assert!(result.is_ok());
     }
+
+    #[test]
+    fn test_parse_version_file_with_prefix() {
+        let input = ParseVersionFileInput {
+            file: ".java-version".into(),
+            content: "graalvm-17.0.8".into(),
+        };
+        let result = parse_version_file(Json(input));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_register_tool_name() {
+        let result = register_tool(Json(RegisterToolInput::default()));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert_eq!(output.name, NAME);
+    }
+
+    #[test]
+    fn test_locate_executables() {
+        let result = locate_executables(Json(LocateExecutablesInput::default()));
+        assert!(result.is_ok());
+        let output = result.unwrap().0;
+        assert!(output.exes.contains_key("java"));
+        assert!(output.exes.contains_key("javac"));
+    }
 }
+

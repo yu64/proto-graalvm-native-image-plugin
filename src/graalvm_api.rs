@@ -35,7 +35,7 @@ pub fn parse_version_from_tag(tag: &str) -> Option<(u64, u64, u64)> {
 }
 
 /// Determine OS string for GraalVM download URLs
-fn get_os_string(os: HostOS) -> &'static str {
+pub fn get_os_string(os: HostOS) -> &'static str {
     match os {
         HostOS::Linux => "linux",
         HostOS::MacOS => "macos",
