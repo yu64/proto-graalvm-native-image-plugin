@@ -1,5 +1,5 @@
 use extism_pdk::FnResult;
-use proto_pdk::{fetch_json, HostArch, HostEnvironment, HostOS};
+use proto_pdk::{fetch_json, HostArch, HostEnvironment, HostOS, PluginError};
 use serde::Deserialize;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/oracle/graalvm-ce-builds/releases";
@@ -102,7 +102,7 @@ pub fn fetch_checksum(download_url: &str) -> FnResult<String> {
         .to_string();
 
     if hash.is_empty() || hash.len() < 64 {
-        return Err("Invalid checksum format".into());
+        return Err(PluginError::Message("Invalid checksum format".into()).into());
     }
 
     Ok(hash)
