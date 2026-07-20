@@ -96,7 +96,11 @@ pub fn download_prebuilt(
     )?;
 
     // Archive prefix is the directory name inside the archive
-    let archive_prefix = format!("graalvm-ce-{}-{}", version_str, graalvm_api::get_os_string(env.os));
+    let archive_prefix = format!(
+        "graalvm-ce-{}-{}",
+        version_str,
+        graalvm_api::get_os_string(env.os)
+    );
 
     Ok(Json(DownloadPrebuiltOutput {
         download_url,
@@ -243,4 +247,3 @@ mod tests {
         assert!(output.exes.contains_key("javac"));
     }
 }
-
