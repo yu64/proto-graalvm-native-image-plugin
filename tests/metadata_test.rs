@@ -8,9 +8,7 @@ mod graalvm_plugin {
         let sandbox = create_empty_proto_sandbox();
         let plugin = sandbox.create_plugin("graalvm-test").await;
 
-        let metadata = plugin
-            .register_tool(RegisterToolInput::default())
-            .await;
+        let metadata = plugin.register_tool(RegisterToolInput::default()).await;
 
         assert_eq!(metadata.name, "GraalVM");
         assert_eq!(metadata.type_of, PluginType::Language);
@@ -21,9 +19,7 @@ mod graalvm_plugin {
         let sandbox = create_empty_proto_sandbox();
         let plugin = sandbox.create_plugin("graalvm-test").await;
 
-        let metadata = plugin
-            .register_tool(RegisterToolInput::default())
-            .await;
+        let metadata = plugin.register_tool(RegisterToolInput::default()).await;
 
         assert!(
             metadata.minimum_proto_version.is_some(),
@@ -36,9 +32,7 @@ mod graalvm_plugin {
         let sandbox = create_empty_proto_sandbox();
         let plugin = sandbox.create_plugin("graalvm-test").await;
 
-        let metadata = plugin
-            .register_tool(RegisterToolInput::default())
-            .await;
+        let metadata = plugin.register_tool(RegisterToolInput::default()).await;
 
         assert!(
             metadata.plugin_version.is_some(),

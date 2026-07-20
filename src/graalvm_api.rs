@@ -89,10 +89,10 @@ pub fn find_asset(
 pub fn fetch_checksum(download_url: &str) -> FnResult<String> {
     // Construct the .sha256 file URL by appending .sha256 to the download URL
     let checksum_url = format!("{}.sha256", download_url);
-    
+
     // Fetch the checksum file content
     let checksum_content: String = fetch_json(checksum_url.as_str())?;
-    
+
     // Extract just the hash (first 64 characters for SHA256)
     let hash = checksum_content
         .trim()
@@ -100,11 +100,11 @@ pub fn fetch_checksum(download_url: &str) -> FnResult<String> {
         .next()
         .unwrap_or("")
         .to_string();
-    
+
     if hash.is_empty() || hash.len() < 64 {
         return Err("Invalid checksum format".into());
     }
-    
+
     Ok(hash)
 }
 
