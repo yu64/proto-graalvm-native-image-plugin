@@ -13,6 +13,7 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
     Ok(Json(RegisterToolOutput {
         name: NAME.into(),
         type_of: PluginType::Language,
+        minimum_proto_version: Some(Version::new(0, 46, 0)),
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
     }))
@@ -97,14 +98,27 @@ pub fn download_prebuilt(
 
     // Archive prefix is the directory name inside the archive
     let archive_prefix = format!(
-        "graalvm-ce-{}-{}",
+        "graalvm-community-jdk-{}-{}-{}_bin",
         version_str,
-        graalvm_api::get_os_string(env.os)
+        graalvm_api::get_os_string(env.os),
+        match env.arch {
+            HostArch::X64 => "x64",
+            HostArch::Arm64 => "aarch64",
+            _ => "x64",
+        }
     );
+
+    // Fetch checksum from .sha256 file
+    let checksum_hash = graalvm_api::fetch_checksum(&download_url).ok();
 
     Ok(Json(DownloadPrebuiltOutput {
         download_url,
         archive_prefix: Some(archive_prefix),
+        checksum: checksum_hash.map(|hash| Checksum {
+            algo: ChecksumAlgorithm::Sha256,
+            hash: Some(hash),
+            key: None,
+        }),
         ..Default::default()
     }))
 }
@@ -146,7 +160,7 @@ pub fn locate_executables(
 }
 
 #[plugin_fn]
-pub fn load_versions(_: ()) -> FnResult<Json<LoadVersionsOutput>> {
+pub fn load_versions(Json(_): Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOutput>> {
     let releases = graalvm_api::fetch_releases()?;
 
     let mut versions: Vec<VersionSpec> = releases

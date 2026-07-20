@@ -74,7 +74,8 @@ pub fn find_asset(
         if release.tag_name.contains(version) {
             for asset in &release.assets {
                 let name = asset.name.to_lowercase();
-                if name.contains(os) && name.contains(arch) {
+                // Exclude .sha256 checksum files
+                if !name.ends_with(".sha256") && name.contains(os) && name.contains(arch) {
                     return Some(asset.browser_download_url.clone());
                 }
             }
@@ -82,6 +83,29 @@ pub fn find_asset(
     }
 
     None
+}
+
+/// Fetch SHA256 checksum for a binary from GitHub release
+pub fn fetch_checksum(download_url: &str) -> FnResult<String> {
+    // Construct the .sha256 file URL by appending .sha256 to the download URL
+    let checksum_url = format!("{}.sha256", download_url);
+    
+    // Fetch the checksum file content
+    let checksum_content: String = fetch_json(checksum_url.as_str())?;
+    
+    // Extract just the hash (first 64 characters for SHA256)
+    let hash = checksum_content
+        .trim()
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_string();
+    
+    if hash.is_empty() || hash.len() < 64 {
+        return Err("Invalid checksum format".into());
+    }
+    
+    Ok(hash)
 }
 
 #[cfg(test)]
@@ -189,5 +213,40 @@ mod tests {
             release.assets[0].name,
             "graalvm-ce-java21-windows-x64-25.0.0.zip"
         );
+    }
+
+    #[test]
+    fn test_find_asset_excludes_checksum_files() {
+        let releases = vec![GitHubRelease {
+            tag_name: "jdk-25.0.0".to_string(),
+            assets: vec![
+                GitHubAsset {
+                    name: "graalvm-community-jdk-25.0.0_linux-x64_bin.tar.gz".to_string(),
+                    browser_download_url: "https://example.com/binary.tar.gz".to_string(),
+                },
+                GitHubAsset {
+                    name: "graalvm-community-jdk-25.0.0_linux-x64_bin.tar.gz.sha256".to_string(),
+                    browser_download_url: "https://example.com/binary.tar.gz.sha256".to_string(),
+                },
+            ],
+        }];
+
+        let env = HostEnvironment {
+            os: HostOS::Linux,
+            arch: HostArch::X64,
+            ..Default::default()
+        };
+
+        let result = find_asset(&releases, "25.0.0", &env);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), "https://example.com/binary.tar.gz");
+    }
+
+    #[test]
+    fn test_checksum_url_generation() {
+        let download_url = "https://github.com/oracle/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_linux-x64_bin.tar.gz";
+        let checksum_url = format!("{}.sha256", download_url);
+        assert!(checksum_url.ends_with(".sha256"));
+        assert!(checksum_url.contains("graalvm-community-jdk-25.0.0_linux-x64_bin.tar.gz.sha256"));
     }
 }
