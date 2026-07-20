@@ -11,10 +11,7 @@ mod graalvm_plugin {
         let output = plugin.load_versions(LoadVersionsInput::default()).await;
 
         assert!(!output.versions.is_empty(), "Should return some versions");
-        assert!(
-            output.latest.is_some(),
-            "Should have a latest version"
-        );
+        assert!(output.latest.is_some(), "Should have a latest version");
     }
 
     #[tokio::test(flavor = "multi_thread")]

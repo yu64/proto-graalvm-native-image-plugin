@@ -38,8 +38,14 @@ mod graalvm_plugin {
             .locate_executables(LocateExecutablesInput::default())
             .await;
 
-        let javac_config = output.exes.get("javac").expect("javac executable not found");
-        assert!(!javac_config.primary, "javac should not be the primary executable");
+        let javac_config = output
+            .exes
+            .get("javac")
+            .expect("javac executable not found");
+        assert!(
+            !javac_config.primary,
+            "javac should not be the primary executable"
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -51,7 +57,10 @@ mod graalvm_plugin {
             .locate_executables(LocateExecutablesInput::default())
             .await;
 
-        assert!(!output.exes_dirs.is_empty(), "Should have executable directories");
+        assert!(
+            !output.exes_dirs.is_empty(),
+            "Should have executable directories"
+        );
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -59,9 +68,7 @@ mod graalvm_plugin {
         let sandbox = create_empty_proto_sandbox();
         let plugin = sandbox.create_plugin("graalvm-test").await;
 
-        let output = plugin
-            .register_tool(RegisterToolInput::default())
-            .await;
+        let output = plugin.register_tool(RegisterToolInput::default()).await;
 
         assert_eq!(output.name, "GraalVM");
         assert_eq!(output.type_of, PluginType::Language);

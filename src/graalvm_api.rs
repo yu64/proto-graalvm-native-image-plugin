@@ -185,6 +185,9 @@ mod tests {
         let release: GitHubRelease = serde_json::from_str(json).unwrap();
         assert_eq!(release.tag_name, "graal-25.0.0");
         assert_eq!(release.assets.len(), 1);
-        assert_eq!(release.assets[0].name, "graalvm-ce-java21-windows-x64-25.0.0.zip");
+        assert_eq!(
+            release.assets[0].name,
+            "graalvm-ce-java21-windows-x64-25.0.0.zip"
+        );
     }
 }
