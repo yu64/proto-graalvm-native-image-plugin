@@ -155,7 +155,7 @@ pub fn locate_executables(
 
     Ok(Json(LocateExecutablesOutput {
         exes: FxHashMap::from_iter([(
-            "native-image".into(),
+            "graalvm-native-image".into(),
             ExecutableConfig::new_primary(exe_path),
         )]),
         exes_dirs: vec![bin_dir],
@@ -297,5 +297,21 @@ mod tests {
             ..linux
         };
         assert!(foojay_arch(&arm).is_err());
+    }
+
+    #[test]
+    fn locate_executables_uses_correct_id() {
+        let input = LocateExecutablesInput {
+            context: ToolContext {
+                tool_dir: VirtualPath::from("/path/to/graalvm"),
+                ..ToolContext::default()
+            },
+        };
+        let result = locate_executables(Json(input)).unwrap();
+        let output = result.0;
+        assert!(
+            output.exes.contains_key("graalvm-native-image"),
+            "Expected 'graalvm-native-image' ID in executables"
+        );
     }
 }

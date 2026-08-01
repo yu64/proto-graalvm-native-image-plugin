@@ -6,7 +6,7 @@ A proto WASM plugin that installs **GraalVM Community** and exposes only its
 
 ```toml
 [tools]
-native-image = "25.0.3"
+graalvm-native-image = "25.0.3"
 ```
 
 Only unscoped GraalVM versions are accepted. Java distribution scopes such as
