@@ -25,13 +25,47 @@ it sets `GRAALVM_HOME`; it does not modify `JAVA_HOME`.
 
 ## Usage
 
-```bash
-# Activate the tool and use native-image
-proto use graalvm-native-image
+### Independent GraalVM Native Image
 
-# Run native-image command
+```bash
+# Specify version explicitly
+proto install graalvm-native-image 25.0.1
+
+# Activate and run
+proto use graalvm-native-image
 native-image --version
 ```
+
+### Integrated with Java Plugin
+
+If the `java` plugin is configured with a GraalVM distribution, this plugin can use that GraalVM instead of downloading a separate version.
+
+#### Configuration
+
+```toml
+[tools.java]
+# Specify a GraalVM distribution
+distribution = "graalvm-community"
+
+[tools]
+java = "25.0.1"
+
+# Option 1: Use bundled GraalVM from java plugin
+graalvm-native-image = "bundled"
+
+# Option 2: Match java version (use java's GraalVM)
+graalvm-native-image = "25.0.1"
+
+# Option 3: Use different version (download separately)
+graalvm-native-image = "24.0.1"
+```
+
+#### Behavior
+
+- **`bundled` version**: Automatically uses the GraalVM from the `java` plugin
+- **Same version as java**: Uses the GraalVM from the `java` plugin
+- **Different version**: Downloads a separate GraalVM Community instance
+- **java without GraalVM**: Downloads GraalVM independently
 
 ## Development
 
