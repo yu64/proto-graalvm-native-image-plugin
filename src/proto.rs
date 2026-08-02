@@ -74,6 +74,9 @@ pub fn resolve_version(
 
         // If java plugin doesn't have GraalVM, fall back to latest
         output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
+    } else {
+        // For non-bundled versions, validate the version spec
+        validate_unresolved_version(&input.initial)?;
     }
 
     Ok(Json(output))
@@ -104,14 +107,6 @@ pub fn parse_version_file(
         None
     };
     Ok(Json(ParseVersionFileOutput { version }))
-}
-
-#[plugin_fn]
-pub fn resolve_version(
-    Json(input): Json<ResolveVersionInput>,
-) -> FnResult<Json<ResolveVersionOutput>> {
-    validate_unresolved_version(&input.initial)?;
-    Ok(Json(ResolveVersionOutput::default()))
 }
 
 #[plugin_fn]
