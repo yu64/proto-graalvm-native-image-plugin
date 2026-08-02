@@ -139,8 +139,9 @@ pub fn download_prebuilt(
             
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
             if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If versions match, use java's GraalVM (skip download)
+                // If versions match, GraalVM is managed by java plugin - skip download
                 if requested_version == java_graalvm_version {
+                    debug!("GraalVM {} is managed by java plugin, skipping download", requested_version);
                     return Ok(Json(DownloadPrebuiltOutput::default()));
                 }
             }

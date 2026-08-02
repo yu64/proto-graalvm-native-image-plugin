@@ -25,47 +25,52 @@ it sets `GRAALVM_HOME`; it does not modify `JAVA_HOME`.
 
 ## Usage
 
-### Independent GraalVM Native Image
+### With Java Plugin (Recommended)
 
+When using the `java` plugin with a GraalVM distribution, specify `graalvm-native-image = "bundled"` to use the GraalVM from java. This ensures both tools use the same GraalVM installation.
+
+```toml
+[plugins.tools]
+graalvm-native-image = 'github://yu64/proto-graalvm-plugin'
+
+[tools]
+java = "graalvm-community-25.0.1"
+graalvm-native-image = "bundled"
+```
+
+Use native-image:
 ```bash
-# Specify version explicitly
-proto install graalvm-native-image 25.0.1
-
-# Activate and run
+proto use java
 proto use graalvm-native-image
 native-image --version
 ```
 
-### Integrated with Java Plugin
+The `native-image` command comes from java's GraalVM installation.
 
-If the `java` plugin is configured with a GraalVM distribution, this plugin can use that GraalVM instead of downloading a separate version.
+### Independent GraalVM Native Image
 
-#### Configuration
+For standalone GraalVM Community installations:
 
 ```toml
-[tools.java]
-# Specify a GraalVM distribution
-distribution = "graalvm-community"
-
 [tools]
-java = "25.0.1"
-
-# Option 1: Use bundled GraalVM from java plugin
-graalvm-native-image = "bundled"
-
-# Option 2: Match java version (use java's GraalVM)
 graalvm-native-image = "25.0.1"
-
-# Option 3: Use different version (download separately)
-graalvm-native-image = "24.0.1"
 ```
 
-#### Behavior
+Use native-image:
+```bash
+proto use graalvm-native-image
+native-image --version
+```
 
-- **`bundled` version**: Automatically resolves to the GraalVM version managed by the `java` plugin. If java doesn't have GraalVM, falls back to the latest version
-- **Same version as java**: Uses the GraalVM from the `java` plugin (no separate download needed)
-- **Different version**: Downloads a separate GraalVM Community instance
-- **java without GraalVM**: Downloads GraalVM independently
+### Usage Patterns
+
+| Java Setup | graalvm-native-image | Behavior |
+|-----------|----------------------|----------|
+| `graalvm-community-25` | `"bundled"` | Use java's GraalVM |
+| `graalvm-community-25` | `"25.0.1"` (same) | Use java's GraalVM |
+| `graalvm-community-25` | `"24.0.1"` (different) | Download separate GraalVM |
+| `temurin-21` (no graalvm) | `"25.0.1"` | Download separate GraalVM |
+| (no java) | `"25.0.1"` | Download separate GraalVM |
 
 ## Development
 
