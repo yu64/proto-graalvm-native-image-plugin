@@ -62,8 +62,8 @@ graalvm-native-image = "24.0.1"
 
 #### Behavior
 
-- **`bundled` version**: Automatically uses the GraalVM from the `java` plugin
-- **Same version as java**: Uses the GraalVM from the `java` plugin
+- **`bundled` version**: Automatically resolves to the GraalVM version managed by the `java` plugin. If java doesn't have GraalVM, falls back to the latest version
+- **Same version as java**: Uses the GraalVM from the `java` plugin (no separate download needed)
 - **Different version**: Downloads a separate GraalVM Community instance
 - **java without GraalVM**: Downloads GraalVM independently
 
