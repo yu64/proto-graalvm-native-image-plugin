@@ -27,7 +27,7 @@ it sets `GRAALVM_HOME`; it does not modify `JAVA_HOME`.
 
 ### With Java Plugin (Recommended)
 
-When using the `java` plugin with a GraalVM distribution, specify `graalvm-native-image` with the same version or `"bundled"`. The native-image binary will be copied to java's bin directory to avoid duplicate JDK installations.
+When using the `java` plugin with a GraalVM distribution, specify `graalvm-native-image` with the same version or `"bundled"`. The native-image binary will be installed directly to java's bin directory automatically.
 
 ```toml
 [plugins.tools]
@@ -40,11 +40,10 @@ graalvm-native-image = "bundled"
 # graalvm-native-image = "25.0.1"  # Same version as java
 ```
 
-Both java and native-image will use the same GraalVM installation. The graalvm-native-image tool directory may appear in the tools list, but the actual binary is in java's bin directory to save disk space.
+Both java and native-image will use the same GraalVM installation with no disk duplication.
 
 Use native-image:
 ```bash
-proto use java
 native-image --version
 ```
 
