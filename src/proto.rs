@@ -113,7 +113,7 @@ pub fn download_prebuilt(
     validate_resolved_version(&input.context.version)?;
 
     // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
         if java_version.starts_with("graalvm") {
             let requested_version = input.context.version.to_string();
             
@@ -174,13 +174,13 @@ pub fn locate_executables(
     let exe_name = native_image_executable_name(env.os.is_windows());
     
     // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
         if java_version.starts_with("graalvm") {
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
             if let Some(java_graalvm_version) = java_version.split('-').last() {
                 // If "bundled" or versions match, use java's GraalVM
                 if requested_version == "bundled" || requested_version == java_graalvm_version {
-                    if let Ok(java_home) = get_host_env_var("JAVA_HOME") {
+                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
                         let bin_subdir = if env.os.is_windows() { "bin" } else { "bin" };
                         let bin_dir = PathBuf::from(java_home).join(bin_subdir);
                         let exe_path = format!(
@@ -229,13 +229,13 @@ pub fn activate_environment(
     let requested_version = input.context.version.to_string();
     
     // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
         if java_version.starts_with("graalvm") {
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
             if let Some(java_graalvm_version) = java_version.split('-').last() {
                 // If "bundled" or versions match, use java's GraalVM
                 if requested_version == "bundled" || requested_version == java_graalvm_version {
-                    if let Ok(java_home) = get_host_env_var("JAVA_HOME") {
+                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
                         output.env.insert("GRAALVM_HOME".into(), java_home);
                         return Ok(Json(output));
                     }
