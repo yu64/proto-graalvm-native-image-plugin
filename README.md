@@ -27,7 +27,7 @@ it sets `GRAALVM_HOME`; it does not modify `JAVA_HOME`.
 
 ### With Java Plugin (Recommended)
 
-When using the `java` plugin with a GraalVM distribution, specify `graalvm-native-image = "bundled"` to use the GraalVM from java. This ensures both tools use the same GraalVM installation.
+When using the `java` plugin with a GraalVM distribution, specify `graalvm-native-image` with the same version or `"bundled"`. The native-image binary will be copied to java's bin directory to avoid duplicate JDK installations.
 
 ```toml
 [plugins.tools]
@@ -36,16 +36,17 @@ graalvm-native-image = 'github://yu64/proto-graalvm-plugin'
 [tools]
 java = "graalvm-community-25.0.1"
 graalvm-native-image = "bundled"
+# OR
+# graalvm-native-image = "25.0.1"  # Same version as java
 ```
+
+Both java and native-image will use the same GraalVM installation. The graalvm-native-image tool directory may appear in the tools list, but the actual binary is in java's bin directory to save disk space.
 
 Use native-image:
 ```bash
 proto use java
-proto use graalvm-native-image
 native-image --version
 ```
-
-The `native-image` command comes from java's GraalVM installation.
 
 ### Independent GraalVM Native Image
 
@@ -61,16 +62,6 @@ Use native-image:
 proto use graalvm-native-image
 native-image --version
 ```
-
-### Usage Patterns
-
-| Java Setup | graalvm-native-image | Behavior |
-|-----------|----------------------|----------|
-| `graalvm-community-25` | `"bundled"` | Use java's GraalVM |
-| `graalvm-community-25` | `"25.0.1"` (same) | Use java's GraalVM |
-| `graalvm-community-25` | `"24.0.1"` (different) | Download separate GraalVM |
-| `temurin-21` (no graalvm) | `"25.0.1"` | Download separate GraalVM |
-| (no java) | `"25.0.1"` | Download separate GraalVM |
 
 ## Development
 

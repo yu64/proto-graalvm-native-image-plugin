@@ -139,10 +139,10 @@ pub fn download_prebuilt(
             
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
             if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If versions match, GraalVM is managed by java plugin - skip download
+                // If versions match, GraalVM is managed by java plugin
                 if requested_version == java_graalvm_version {
-                    debug!("GraalVM {} is managed by java plugin, skipping download", requested_version);
-                    return Ok(Json(DownloadPrebuiltOutput::default()));
+                    // Download, but post_install will move files to java's directory
+                    debug!("GraalVM {} is managed by java plugin, will be linked to java", requested_version);
                 }
             }
         }
@@ -262,6 +262,53 @@ pub fn activate_environment(
         output.env.insert("GRAALVM_HOME".into(), path);
     }
     Ok(Json(output))
+}
+
+#[plugin_fn]
+pub fn post_install(Json(input): Json<InstallHook>) -> FnResult<()> {
+    let requested_version = input.context.version.to_string();
+    
+    // Check if java plugin manages GraalVM
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
+            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
+            if let Some(java_graalvm_version) = java_version.split('-').last() {
+                // If versions match, move extracted files to java's directory
+                if requested_version == java_graalvm_version {
+                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
+                        // The files were extracted to input.context.tool_dir
+                        // Move the bin directory contents to java's bin
+                        let graalvm_bin = input.context.tool_dir.join(native_image_bin_dir(&input.context.tool_dir));
+                        
+                        if graalvm_bin.exists() {
+                            // Copy native-image binary to java's bin
+                            let env = get_host_environment()?;
+                            let exe_name = native_image_executable_name(env.os.is_windows());
+                            let native_image_path = graalvm_bin.join(&exe_name);
+                            
+                            if native_image_path.exists() {
+                                let java_bin = PathBuf::from(java_home).join("bin");
+                                let java_native_image_path = java_bin.join(&exe_name);
+                                
+                                debug!("Copying native-image to java's bin directory");
+                                // Copy the file to java's bin
+                                std::fs::copy(&native_image_path, &java_native_image_path)
+                                    .map_err(|e| plugin_err!("Failed to copy native-image to java bin: {}", e))?;
+                                
+                                // Clean up the graalvm-native-image tool directory
+                                if let Ok(_) = std::fs::remove_dir_all(&input.context.tool_dir) {
+                                    debug!("Removed graalvm-native-image tool directory as files are in java");
+                                }
+                            }
+                        }
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(())
 }
 
 fn validate_unresolved_version(spec: &UnresolvedVersionSpec) -> FnResult<()> {
