@@ -53,15 +53,11 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
         ..Default::default()
     };
 
-    // Check if java manages GraalVM
-    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    
-    if let Some(ref java_ver) = java_version {
-        if java_ver.starts_with("graalvm") {
-            if let Some(ref java_home_path) = java_home {
-                // Java manages GraalVM, install to java's directory
-                output.inventory_options.override_dir = Some(java_home_path.clone().into());
+    // If java manages GraalVM, install to java's directory to avoid duplication
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
+            if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
+                output.inventory_options.override_dir = Some(java_home.into());
             }
         }
     }
@@ -147,18 +143,16 @@ pub fn download_prebuilt(
     }
     validate_resolved_version(&input.context.version)?;
 
-    // Check environment for debugging
-    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    let requested_version = input.context.version.to_string();
-    
-    // If java manages GraalVM with matching version, skip download
-    if let Some(ref java_ver) = java_version {
-        if java_ver.starts_with("graalvm") {
-            if let Some(java_graalvm_version) = java_ver.split('-').last() {
+    // Check if java plugin manages GraalVM
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
+            let requested_version = input.context.version.to_string();
+            
+            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
+            if let Some(java_graalvm_version) = java_version.split('-').last() {
+                // If versions match, GraalVM is managed by java plugin
                 if requested_version == java_graalvm_version {
-                    // Same version as java's GraalVM
-                    // proto will install via override_dir to java's directory
+                    // Download, but proto will install to java's directory via override_dir
                 }
             }
         }
@@ -256,19 +250,15 @@ pub fn activate_environment(
     let mut output = ActivateEnvironmentOutput::default();
     let requested_version = input.context.version.to_string();
     
-    // Debug: Check environment variables
-    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    
-    // If java plugin manages GraalVM
-    if let Some(ref java_ver) = java_version {
-        if java_ver.starts_with("graalvm") {
+    // Check if java plugin manages GraalVM
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-            if let Some(java_graalvm_version) = java_ver.split('-').last() {
+            if let Some(java_graalvm_version) = java_version.split('-').last() {
                 // If "bundled" or versions match, use java's GraalVM
                 if requested_version == "bundled" || requested_version == java_graalvm_version {
-                    if let Some(ref java_home_path) = java_home {
-                        output.env.insert("GRAALVM_HOME".into(), java_home_path.clone());
+                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
+                        output.env.insert("GRAALVM_HOME".into(), java_home);
                         return Ok(Json(output));
                     }
                 }
