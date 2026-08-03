@@ -44,14 +44,29 @@ struct PackageInfo {
 
 #[plugin_fn]
 pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
-    Ok(Json(RegisterToolOutput {
+    let mut output = RegisterToolOutput {
         name: "GraalVM Native Image".into(),
         type_of: PluginType::Language,
         requires: vec!["java".into()],
         minimum_proto_version: Some(Version::new(0, 59, 0)),
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
-    }))
+    };
+
+    // Check if java manages GraalVM
+    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
+    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
+    
+    if let Some(ref java_ver) = java_version {
+        if java_ver.starts_with("graalvm") {
+            if let Some(ref java_home_path) = java_home {
+                // Java manages GraalVM, install to java's directory
+                output.inventory_options.override_dir = Some(java_home_path.clone().into());
+            }
+        }
+    }
+
+    Ok(Json(output))
 }
 
 #[plugin_fn]
@@ -132,17 +147,18 @@ pub fn download_prebuilt(
     }
     validate_resolved_version(&input.context.version)?;
 
-    // Check environment for debugging java integration
-    let _java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let _java_home = get_host_env_var("JAVA_HOME").ok().flatten();
+    // Check environment for debugging
+    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
+    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
     let requested_version = input.context.version.to_string();
     
-    // If java manages same version GraalVM, post_install will handle copying to java's bin
-    if let Some(ref java_ver) = _java_version {
+    // If java manages GraalVM with matching version, skip download
+    if let Some(ref java_ver) = java_version {
         if java_ver.starts_with("graalvm") {
             if let Some(java_graalvm_version) = java_ver.split('-').last() {
                 if requested_version == java_graalvm_version {
-                    // Will be handled by post_install
+                    // Same version as java's GraalVM
+                    // proto will install via override_dir to java's directory
                 }
             }
         }
