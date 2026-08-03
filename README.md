@@ -43,11 +43,13 @@ graalvm-native-image = "bundled"
 # graalvm-native-image = "25.0.1"
 ```
 
-**Behavior:**
-- `resolve_version` resolves "bundled" to java's GraalVM version (extracted from PROTO_JAVA_VERSION)
-- `download_prebuilt` detects version match with java and **skips download** entirely
-- `locate_executables` finds native-image in java's JAVA_HOME/bin directory
-- **Single JDK installation** - no disk duplication
+Both java and native-image will use the same GraalVM installation. The graalvm-native-image tool directory may appear in the tools list, but the actual binary is in java's bin directory to save disk space.
+
+Use native-image:
+```bash
+proto use java
+native-image --version
+```
 
 ### Independent GraalVM Native Image
 

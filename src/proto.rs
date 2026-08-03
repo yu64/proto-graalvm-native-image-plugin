@@ -44,25 +44,14 @@ struct PackageInfo {
 
 #[plugin_fn]
 pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
-    let mut output = RegisterToolOutput {
+    Ok(Json(RegisterToolOutput {
         name: "GraalVM Native Image".into(),
         type_of: PluginType::Language,
         requires: vec!["java".into()],
         minimum_proto_version: Some(Version::new(0, 59, 0)),
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
-    };
-
-    // If java manages GraalVM, install to java's directory to avoid duplication
-    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
-        if java_version.starts_with("graalvm") {
-            if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
-                output.inventory_options.override_dir = Some(VirtualPath::from(java_home));
-            }
-        }
-    }
-
-    Ok(Json(output))
+    }))
 }
 
 #[plugin_fn]
