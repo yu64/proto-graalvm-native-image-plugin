@@ -55,31 +55,6 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
 }
 
 #[plugin_fn]
-pub fn resolve_version(
-    Json(input): Json<ResolveVersionInput>,
-) -> FnResult<Json<ResolveVersionOutput>> {
-    let mut output = ResolveVersionOutput::default();
-
-    // Handle "bundled" alias: use the java plugin's GraalVM version
-    if input.initial.is_alias("bundled") {
-        if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
-            if java_version.starts_with("graalvm") {
-                // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-                if let Some(graalvm_version) = java_version.split('-').last() {
-                    output.version = Some(VersionSpec::parse(graalvm_version)?);
-                    return Ok(Json(output));
-                }
-            }
-        }
-
-        // If java plugin doesn't have GraalVM, fall back to latest
-        output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
-    }
-
-    Ok(Json(output))
-}
-
-#[plugin_fn]
 pub fn detect_version_files(_: ()) -> FnResult<Json<DetectVersionOutput>> {
     Ok(Json(DetectVersionOutput {
         files: vec![".graalvm-version".into()],
@@ -142,11 +117,20 @@ pub fn download_prebuilt(
         if java_version.starts_with("graalvm") {
             let requested_version = input.context.version.to_string();
             
+            // If "bundled" is specified, use java's GraalVM
+            if requested_version == "bundled" {
+                return Err(plugin_err!(
+                    "Version \"bundled\" requires java plugin with GraalVM. Please install a GraalVM version with the java plugin."
+                ));
+            }
+            
             // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
             if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If versions match, use java's GraalVM (skip download)
+                // If versions match, use java's GraalVM
                 if requested_version == java_graalvm_version {
-                    return Ok(Json(DownloadPrebuiltOutput::default()));
+                    return Err(plugin_err!(
+                        "Version <hash>{requested_version}</hash> is managed by the java plugin. The GraalVM from java will be used."
+                    ));
                 }
             }
         }
@@ -430,18 +414,5 @@ mod tests {
             output.requires.contains(&"java".to_string()),
             "Expected graalvm-native-image to require 'java' plugin"
         );
-    }
-
-    #[test]
-    fn resolve_version_handles_bundled_alias() {
-        let input = ResolveVersionInput {
-            initial: UnresolvedVersionSpec::Alias("bundled".into()),
-            ..ResolveVersionInput::default()
-        };
-        // Note: This test will return candidate (latest) because PROTO_JAVA_VERSION is not set in tests
-        let result = resolve_version(Json(input)).unwrap();
-        let output = result.0;
-        // When bundled is requested but java version is not available, it should suggest latest
-        assert_eq!(output.candidate, Some(UnresolvedVersionSpec::Alias("latest".into())));
     }
 }
