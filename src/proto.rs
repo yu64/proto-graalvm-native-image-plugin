@@ -127,12 +127,15 @@ pub fn download_prebuilt(
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
     let requested_version = input.context.version.to_string();
     
+    // Note: If "bundled" was specified, resolve_version already converted it to a specific version
+    // (e.g., "bundled" → "25.0.1" extracted from PROTO_JAVA_VERSION)
     // Java 側と同じバージョンなら、ダウンロードをスキップして Java 側を使用
     if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
         if java_version.starts_with("graalvm") {
             if let Some(java_graalvm_version) = java_version.split('-').last() {
                 if requested_version == java_graalvm_version {
                     // 同じバージョンなのでダウンロード不要 - 空の出力を返す
+                    // Java 側の GraalVM が使われます
                     return Ok(Json(DownloadPrebuiltOutput::default()));
                 }
             }
@@ -145,21 +148,6 @@ pub fn download_prebuilt(
         ));
     }
     validate_resolved_version(&input.context.version)?;
-
-    // Check environment for debugging java integration
-    let _java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let _java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    
-    // If java manages same version GraalVM, post_install will handle copying to java's bin
-    if let Some(ref java_ver) = _java_version {
-        if java_ver.starts_with("graalvm") {
-            if let Some(java_graalvm_version) = java_ver.split('-').last() {
-                if requested_version == java_graalvm_version {
-                    // Will be handled by post_install
-                }
-            }
-        }
-    }
 
     let env = get_host_environment()?;
     let requested = to_java_version(&input.context.version);
@@ -282,40 +270,15 @@ pub fn activate_environment(
 }
 
 #[plugin_fn]
-pub fn post_install(Json(input): Json<InstallHook>) -> FnResult<()> {
-    let requested_version = input.context.version.to_string();
-    
-    // Check if java plugin manages GraalVM
-    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
-        if java_version.starts_with("graalvm") {
-            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-            if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If versions match, move binary to java's bin directory
-                if requested_version == java_graalvm_version {
-                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
-                        // Find native-image in graalvm-native-image/VERSION/bin
-                        let env = get_host_environment()?;
-                        let exe_name = native_image_executable_name(env.os.is_windows());
-                        let graalvm_bin = native_image_bin_dir(&input.context.tool_dir);
-                        let native_image_src = graalvm_bin.join(&exe_name);
-                        
-                        if native_image_src.exists() {
-                            let java_bin = PathBuf::from(&java_home).join("bin");
-                            let native_image_dst = java_bin.join(&exe_name);
-                            
-                            // Ensure java's bin directory exists
-                            std::fs::create_dir_all(&java_bin)
-                                .map_err(|e| plugin_err!("Failed to create java bin dir: {}", e))?;
-                            
-                            // Copy native-image to java's bin
-                            std::fs::copy(&native_image_src, &native_image_dst)
-                                .map_err(|e| plugin_err!("Failed to copy native-image to java bin: {}", e))?;
-                        }
-                    }
-                }
-            }
-        }
-    }
+pub fn post_install(_: Json<InstallHook>) -> FnResult<()> {
+    // Note: This function is called only when download_prebuilt actually downloads files.
+    // If download_prebuilt returned empty output (java manages same version),
+    // this hook is NOT executed.
+    // 
+    // When files are downloaded (different version than java), they are independent
+    // installations and don't need special handling.
+    // The locate_executables function will correctly find native-image based on
+    // which tool directory was populated.
     
     Ok(())
 }
