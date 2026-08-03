@@ -47,7 +47,6 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
     Ok(Json(RegisterToolOutput {
         name: "GraalVM Native Image".into(),
         type_of: PluginType::Language,
-        requires: vec!["java".into()],
         minimum_proto_version: Some(Version::new(0, 59, 0)),
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
@@ -112,30 +111,6 @@ pub fn download_prebuilt(
     }
     validate_resolved_version(&input.context.version)?;
 
-    // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
-        if java_version.starts_with("graalvm") {
-            let requested_version = input.context.version.to_string();
-            
-            // If "bundled" is specified, use java's GraalVM
-            if requested_version == "bundled" {
-                return Err(plugin_err!(
-                    "Version \"bundled\" requires java plugin with GraalVM. Please install a GraalVM version with the java plugin."
-                ));
-            }
-            
-            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-            if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If versions match, use java's GraalVM
-                if requested_version == java_graalvm_version {
-                    return Err(plugin_err!(
-                        "Version <hash>{requested_version}</hash> is managed by the java plugin. The GraalVM from java will be used."
-                    ));
-                }
-            }
-        }
-    }
-
     let env = get_host_environment()?;
     let requested = to_java_version(&input.context.version);
     let package = fetch_packages(&env, Some(&requested))?
@@ -170,41 +145,8 @@ pub fn locate_executables(
     Json(input): Json<LocateExecutablesInput>,
 ) -> FnResult<Json<LocateExecutablesOutput>> {
     let env = get_host_environment()?;
-    let requested_version = input.context.version.to_string();
-    let exe_name = native_image_executable_name(env.os.is_windows());
-    
-    // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
-        if java_version.starts_with("graalvm") {
-            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-            if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If "bundled" or versions match, use java's GraalVM
-                if requested_version == "bundled" || requested_version == java_graalvm_version {
-                    if let Ok(java_home) = get_host_env_var("JAVA_HOME") {
-                        let bin_subdir = if env.os.is_windows() { "bin" } else { "bin" };
-                        let bin_dir = PathBuf::from(java_home).join(bin_subdir);
-                        let exe_path = format!(
-                            "{}/{}",
-                            bin_dir.to_string_lossy().replace('\\', "/"),
-                            exe_name
-                        );
-                        
-                        return Ok(Json(LocateExecutablesOutput {
-                            exes: FxHashMap::from_iter([(
-                                "native-image".into(),
-                                ExecutableConfig::new_primary(exe_path),
-                            )]),
-                            exes_dirs: vec![bin_dir],
-                            ..Default::default()
-                        }));
-                    }
-                }
-            }
-        }
-    }
-    
-    // Otherwise, use the independently installed GraalVM
     let bin_dir = native_image_bin_dir(&input.context.tool_dir);
+    let exe_name = native_image_executable_name(env.os.is_windows());
     let exe_path = format!(
         "{}/{}",
         bin_dir.to_string_lossy().replace('\\', "/"),
@@ -226,25 +168,6 @@ pub fn activate_environment(
     Json(input): Json<ActivateEnvironmentInput>,
 ) -> FnResult<Json<ActivateEnvironmentOutput>> {
     let mut output = ActivateEnvironmentOutput::default();
-    let requested_version = input.context.version.to_string();
-    
-    // Check if java plugin manages GraalVM
-    if let Ok(java_version) = get_host_env_var("PROTO_JAVA_VERSION") {
-        if java_version.starts_with("graalvm") {
-            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
-            if let Some(java_graalvm_version) = java_version.split('-').last() {
-                // If "bundled" or versions match, use java's GraalVM
-                if requested_version == "bundled" || requested_version == java_graalvm_version {
-                    if let Ok(java_home) = get_host_env_var("JAVA_HOME") {
-                        output.env.insert("GRAALVM_HOME".into(), java_home);
-                        return Ok(Json(output));
-                    }
-                }
-            }
-        }
-    }
-    
-    // Otherwise, use the independently installed GraalVM
     let home = graalvm_home(&input.context.tool_dir);
     if let Some(path) = home.real_path_string() {
         output.env.insert("GRAALVM_HOME".into(), path);
@@ -403,16 +326,6 @@ mod tests {
         assert!(
             output.exes.contains_key("native-image"),
             "Expected 'native-image' command in executables"
-        );
-    }
-
-    #[test]
-    fn register_tool_requires_java_plugin() {
-        let result = register_tool(Json(RegisterToolInput::default())).unwrap();
-        let output = result.0;
-        assert!(
-            output.requires.contains(&"java".to_string()),
-            "Expected graalvm-native-image to require 'java' plugin"
         );
     }
 }
