@@ -43,13 +43,14 @@ graalvm-native-image = "bundled"
 # graalvm-native-image = "25.0.1"
 ```
 
-Both java and native-image will use the same GraalVM installation. The graalvm-native-image tool directory may appear in the tools list, but the actual binary is in java's bin directory to save disk space.
-
 Use native-image:
 ```bash
 proto use java
+proto use graalvm-native-image
 native-image --version
 ```
+
+The `native-image` command comes from java's GraalVM installation.
 
 ### Independent GraalVM Native Image
 
@@ -64,6 +65,16 @@ graalvm-native-image = "25.0.1"  # Separate GraalVM
 In this case:
 - JDK is downloaded separately
 - native-image found in graalvm-native-image's directory
+
+### Usage Patterns
+
+| Java Setup | graalvm-native-image | Behavior |
+|-----------|----------------------|----------|
+| `graalvm-community-25` | `"bundled"` | Use java's GraalVM |
+| `graalvm-community-25` | `"25.0.1"` (same) | Use java's GraalVM |
+| `graalvm-community-25` | `"24.0.1"` (different) | Download separate GraalVM |
+| `temurin-21` (no graalvm) | `"25.0.1"` | Download separate GraalVM |
+| (no java) | `"25.0.1"` | Download separate GraalVM |
 
 ## Development
 
