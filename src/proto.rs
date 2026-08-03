@@ -11,7 +11,6 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::str::FromStr;
-use tool_common::enable_tracing;
 
 const FOOJAY_API_URL: &str = "https://api.foojay.io/disco/v3.0";
 
@@ -45,8 +44,6 @@ struct PackageInfo {
 
 #[plugin_fn]
 pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
-    enable_tracing();
-
     let mut output = RegisterToolOutput {
         name: "GraalVM Native Image".into(),
         type_of: PluginType::Language,
@@ -60,7 +57,6 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
     if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
         if java_version.starts_with("graalvm") {
             if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
-                debug!("Java manages GraalVM at {}, using override_dir", java_home);
                 output.inventory_options.override_dir = Some(VirtualPath::from(java_home));
             }
         }
@@ -81,7 +77,6 @@ pub fn resolve_version(
             if java_version.starts_with("graalvm") {
                 // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
                 if let Some(graalvm_version) = java_version.split('-').last() {
-                    debug!("Resolving 'bundled' to {} from java plugin", graalvm_version);
                     output.version = Some(VersionSpec::parse(graalvm_version)?);
                     return Ok(Json(output));
                 }
@@ -89,7 +84,6 @@ pub fn resolve_version(
         }
 
         // If java plugin doesn't have GraalVM, fall back to latest
-        debug!("Java plugin does not have GraalVM, falling back to latest");
         output.candidate = Some(UnresolvedVersionSpec::Alias("latest".into()));
     } else {
         // For non-bundled versions, validate the version spec
