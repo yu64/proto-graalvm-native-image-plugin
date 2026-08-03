@@ -125,6 +125,20 @@ pub fn load_versions(_: Json<LoadVersionsInput>) -> FnResult<Json<LoadVersionsOu
 pub fn download_prebuilt(
     Json(input): Json<DownloadPrebuiltInput>,
 ) -> FnResult<Json<DownloadPrebuiltOutput>> {
+    let requested_version = input.context.version.to_string();
+    
+    // Java 側と同じバージョンなら、ダウンロードをスキップして Java 側を使用
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
+            if let Some(java_graalvm_version) = java_version.split('-').last() {
+                if requested_version == java_graalvm_version {
+                    // 同じバージョンなのでダウンロード不要 - 空の出力を返す
+                    return Ok(Json(DownloadPrebuiltOutput::default()));
+                }
+            }
+        }
+    }
+
     if input.context.version.is_canary() {
         return Err(plugin_err!(
             "Canary releases are not supported for GraalVM Native Image."
@@ -135,7 +149,6 @@ pub fn download_prebuilt(
     // Check environment for debugging java integration
     let _java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
     let _java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    let requested_version = input.context.version.to_string();
     
     // If java manages same version GraalVM, post_install will handle copying to java's bin
     if let Some(ref java_ver) = _java_version {
