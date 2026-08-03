@@ -44,29 +44,14 @@ struct PackageInfo {
 
 #[plugin_fn]
 pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<RegisterToolOutput>> {
-    let mut output = RegisterToolOutput {
+    Ok(Json(RegisterToolOutput {
         name: "GraalVM Native Image".into(),
         type_of: PluginType::Language,
         requires: vec!["java".into()],
         minimum_proto_version: Some(Version::new(0, 59, 0)),
         plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
         ..Default::default()
-    };
-
-    // Check if java manages GraalVM
-    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
-    
-    if let Some(ref java_ver) = java_version {
-        if java_ver.starts_with("graalvm") {
-            if let Some(ref java_home_path) = java_home {
-                // Java manages GraalVM, install to java's directory
-                output.inventory_options.override_dir = Some(java_home_path.clone().into());
-            }
-        }
-    }
-
-    Ok(Json(output))
+    }))
 }
 
 #[plugin_fn]
@@ -147,18 +132,17 @@ pub fn download_prebuilt(
     }
     validate_resolved_version(&input.context.version)?;
 
-    // Check environment for debugging
-    let java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
-    let java_home = get_host_env_var("JAVA_HOME").ok().flatten();
+    // Check environment for debugging java integration
+    let _java_version = get_host_env_var("PROTO_JAVA_VERSION").ok().flatten();
+    let _java_home = get_host_env_var("JAVA_HOME").ok().flatten();
     let requested_version = input.context.version.to_string();
     
-    // If java manages GraalVM with matching version, skip download
-    if let Some(ref java_ver) = java_version {
+    // If java manages same version GraalVM, post_install will handle copying to java's bin
+    if let Some(ref java_ver) = _java_version {
         if java_ver.starts_with("graalvm") {
             if let Some(java_graalvm_version) = java_ver.split('-').last() {
                 if requested_version == java_graalvm_version {
-                    // Same version as java's GraalVM
-                    // proto will install via override_dir to java's directory
+                    // Will be handled by post_install
                 }
             }
         }
@@ -282,6 +266,45 @@ pub fn activate_environment(
         output.env.insert("GRAALVM_HOME".into(), path);
     }
     Ok(Json(output))
+}
+
+#[plugin_fn]
+pub fn post_install(Json(input): Json<InstallHook>) -> FnResult<()> {
+    let requested_version = input.context.version.to_string();
+    
+    // Check if java plugin manages GraalVM
+    if let Ok(Some(java_version)) = get_host_env_var("PROTO_JAVA_VERSION") {
+        if java_version.starts_with("graalvm") {
+            // Extract version from java_version (e.g., "graalvm-community-25.0.1" -> "25.0.1")
+            if let Some(java_graalvm_version) = java_version.split('-').last() {
+                // If versions match, move binary to java's bin directory
+                if requested_version == java_graalvm_version {
+                    if let Ok(Some(java_home)) = get_host_env_var("JAVA_HOME") {
+                        // Find native-image in graalvm-native-image/VERSION/bin
+                        let env = get_host_environment()?;
+                        let exe_name = native_image_executable_name(env.os.is_windows());
+                        let graalvm_bin = native_image_bin_dir(&input.context.tool_dir);
+                        let native_image_src = graalvm_bin.join(&exe_name);
+                        
+                        if native_image_src.exists() {
+                            let java_bin = PathBuf::from(&java_home).join("bin");
+                            let native_image_dst = java_bin.join(&exe_name);
+                            
+                            // Ensure java's bin directory exists
+                            std::fs::create_dir_all(&java_bin)
+                                .map_err(|e| plugin_err!("Failed to create java bin dir: {}", e))?;
+                            
+                            // Copy native-image to java's bin
+                            std::fs::copy(&native_image_src, &native_image_dst)
+                                .map_err(|e| plugin_err!("Failed to copy native-image to java bin: {}", e))?;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    Ok(())
 }
 
 fn validate_unresolved_version(spec: &UnresolvedVersionSpec) -> FnResult<()> {
