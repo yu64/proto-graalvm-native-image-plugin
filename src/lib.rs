@@ -1,9 +1,9 @@
 //! A proto tool plugin that exposes only GraalVM Community Native Image.
 
 mod graalvm;
-#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+#[cfg(feature = "wasm")]
 mod proto;
 mod version;
 
-#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+#[cfg(feature = "wasm")]
 pub use proto::*;

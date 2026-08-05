@@ -39,3 +39,10 @@ native-image --version
 cargo test
 cargo build --target wasm32-wasip1 --release
 ```
+
+## Contributing
+
+This is a personal project and is not open to external contributions. 
+
+*Note: If the official proto (moonrepo) team provides a mechanism to expose tools like `jlink` without redownloading the entire JDK separately from the one managed by the official java plugin, this plugin might evolve into a more proper tool.*
+
