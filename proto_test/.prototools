@@ -1,0 +1,3 @@
+graalvm-native-image = "25.0.1"
+[plugins.tools]
+graalvm-native-image = 'file://..\target\wasm32-wasip1\release\proto_graalvm_plugin.wasm'
