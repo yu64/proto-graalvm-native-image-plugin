@@ -1,6 +1,6 @@
 [package]
 name = "proto-graalvm-native-image-plugin"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "A proto WASM plugin for GraalVM Community Native Image."
 license = "MIT"
