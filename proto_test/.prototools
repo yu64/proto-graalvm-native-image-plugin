@@ -1,3 +1,5 @@
 graalvm-native-image = "25.0.1"
+
+# Use the locally built plugin on both Windows and Linux.
 [plugins.tools]
-graalvm-native-image = 'file://..\target\wasm32-wasip1\release\proto_graalvm_native_image_plugin.wasm'
+graalvm-native-image = 'file://../target/wasm32-wasip1/release/proto_graalvm_native_image_plugin.wasm'

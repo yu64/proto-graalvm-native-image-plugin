@@ -1,0 +1,3 @@
+# Keep cargo fmt consistent with the project's two-space indentation.
+hard_tabs = false
+tab_spaces = 2

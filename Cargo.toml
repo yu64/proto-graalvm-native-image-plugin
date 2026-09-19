@@ -7,6 +7,7 @@ license = "MIT"
 publish = false
 
 [lib]
+# WASM plugin output plus a library target for host unit tests.
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
@@ -24,6 +25,7 @@ default = ["wasm"]
 wasm = []
 
 [profile.release]
+# Keep the downloadable WASM artifact small.
 codegen-units = 1
 debug = false
 lto = true

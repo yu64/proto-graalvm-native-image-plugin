@@ -1,0 +1,9 @@
+# Repository metadata and local agent configuration are not build inputs.
+.git
+.agents
+.codex
+
+# Build artifacts and test state are recreated inside the container.
+target
+proto_test/.runtime
+**/*.log
