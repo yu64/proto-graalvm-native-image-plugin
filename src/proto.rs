@@ -55,7 +55,7 @@ pub fn register_tool(Json(_): Json<RegisterToolInput>) -> FnResult<Json<Register
   Ok(Json(RegisterToolOutput {
     name: "GraalVM Native Image".into(),
     type_of: PluginType::Language,
-    minimum_proto_version: Some(Version::new(0, 59, 0)),
+    minimum_proto_version: Some(Version::new(0, 60, 0)),
     plugin_version: Version::parse(env!("CARGO_PKG_VERSION")).ok(),
     ..Default::default()
   }))
@@ -203,8 +203,10 @@ pub fn activate_environment(
   let home = graalvm_home(&input.context.tool_dir);
 
   // Export the host path, not the path used inside the WASM filesystem.
-  if let Some(path) = home.real_path_string() {
-    output.env.insert("GRAALVM_HOME".into(), path);
+  if let Some(path) = home.to_real_path()? {
+    output
+      .env
+      .insert("GRAALVM_HOME".into(), path.to_string_lossy().into_owned());
   }
 
   Ok(Json(output))

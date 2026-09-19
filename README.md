@@ -4,6 +4,13 @@ A proto WASM plugin that installs **GraalVM Community** and exposes only
 `native-image`, without adding `java`, `javac`, or `jar` to PATH.
 On activation, it sets `GRAALVM_HOME` and leaves `JAVA_HOME` unchanged.
 
+## Compatibility
+
+Plugin `0.2.0` requires proto `0.60.0` or newer. It uses the new WASM path API
+introduced in [proto 0.60](https://moonrepo.dev/blog/proto-v0.60).
+For proto `0.59.x`, use plugin `0.1.1` by pinning the locator to
+`github://yu64/proto-graalvm-native-image-plugin@v0.1.1`.
+
 ## Install from GitHub Releases
 
 Once a WASM plugin asset is published to
@@ -29,7 +36,8 @@ proto run graalvm-native-image -- --version
 
 ## Build and try locally
 
-Tested with proto `0.59.0` and GraalVM Community `25.0.1`.
+Tested on Linux x64 with proto `0.60.0` and `0.62.2`, using GraalVM Community
+`25.0.1`. The integration test defaults to proto `0.60.0`.
 From the repository root:
 
 ```sh
@@ -67,8 +75,8 @@ cargo test --locked
 For an isolated Linux test environment:
 
 ```sh
-docker build -f proto_test/Dockerfile --build-arg PROTO_VERSION=0.59.0 -t graalvm-plugin-test:0.59.0 .
-docker run --rm graalvm-plugin-test:0.59.0
+docker build -f proto_test/Dockerfile --build-arg PROTO_VERSION=0.60.0 -t graalvm-plugin-test:0.60.0 .
+docker run --rm graalvm-plugin-test:0.60.0
 ```
 
 Change `PROTO_VERSION` and the image tag to test another proto release.

@@ -457,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "proto-graalvm-native-image-plugin"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "extism-pdk",
  "proto_pdk",
@@ -469,9 +469,9 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0030c90652835da05c1839ebb5e7cb8995bfae776bf340f5869aff530a230ea"
+checksum = "7c6984c7bc56c118dad0f597bfbce17429831b46f27f88c54e2367ff671fbdc3"
 dependencies = [
  "extism-pdk",
  "proto_pdk_api",
@@ -482,9 +482,9 @@ dependencies = [
 
 [[package]]
 name = "proto_pdk_api"
-version = "0.32.1"
+version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e00f08f99b3d05d81133b6ebb9077bc6e1b8a2718182892022d657e706161f4e"
+checksum = "1ab11b9f81482b9233620631855e59e7761f8c1cabb861eb9853f02b2bdaae58"
 dependencies = [
  "derive_setters",
  "rustc-hash",
@@ -721,9 +721,9 @@ dependencies = [
 
 [[package]]
 name = "system_env"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4d7bf944aae854a6a613b8af7a4d044def0fbbc763dcea7e1acf84e331d3527"
+checksum = "325a3f70fd3a025f4b583cd8eaa90fbabf61493f690815d7148df778bb4839ac"
 dependencies = [
  "regex",
  "serde",
@@ -854,9 +854,9 @@ dependencies = [
 
 [[package]]
 name = "warpgate_api"
-version = "0.17.6"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c678ea51aa280e3b4688966daa09b95ebcc7a58d6f5ace3a00708cda7aea62cf"
+checksum = "7fb5b49ce9a7de87f671a5fabbaf04e9ad1de5701fb3bb972027ea7a4b41b3bd"
 dependencies = [
  "anyhow",
  "derive_setters",
@@ -870,9 +870,9 @@ dependencies = [
 
 [[package]]
 name = "warpgate_pdk"
-version = "0.16.5"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2897a95cca4ca14002c2407a365aa161a43fe4e4935d626c170e8c34552a22a"
+checksum = "e59497845a80b314477c9803eb96eaf41574df879b8f269a8c1711da46ed9184"
 dependencies = [
  "extism-pdk",
  "serde",
