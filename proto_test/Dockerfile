@@ -19,7 +19,7 @@ RUN cargo test --locked \
 # The runtime stage has its own proto installation and no host-mounted state.
 FROM docker.io/library/debian:bookworm-slim AS test
 
-ARG PROTO_VERSION=0.59.0
+ARG PROTO_VERSION=0.60.0
 
 ENV PROTO_HOME=/opt/proto
 ENV PATH="/opt/proto/bin:/opt/proto/shims:${PATH}"
